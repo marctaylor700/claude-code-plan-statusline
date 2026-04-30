@@ -31,6 +31,17 @@ fmt_time() {
   date -r "$epoch" "+%-I:%M%p" 2>/dev/null | tr '[:upper:]' '[:lower:]'
 }
 
+# Show time if the reset is today, otherwise the lowercase weekday (e.g. "fri").
+fmt_when() {
+  local epoch=$1
+  [[ -z "$epoch" ]] && return
+  if [[ "$(date -r "$epoch" "+%Y-%m-%d" 2>/dev/null)" == "$(date "+%Y-%m-%d")" ]]; then
+    fmt_time "$epoch"
+  else
+    date -r "$epoch" "+%a" 2>/dev/null | tr '[:upper:]' '[:lower:]'
+  fi
+}
+
 segments=()
 segments+=("$(printf '\033[1m%s\033[0m' "$model")")
 
@@ -41,7 +52,7 @@ fi
 
 if [[ -n "$week_pct" ]]; then
   pct=${week_pct%.*}
-  segments+=("$(colorize "$week_pct")week: ${pct}%$(reset_color) (→$(fmt_time "$week_reset"))")
+  segments+=("$(colorize "$week_pct")week: ${pct}%$(reset_color) (→$(fmt_when "$week_reset"))")
 fi
 
 if [[ -z "$five_pct" && -z "$week_pct" ]]; then
