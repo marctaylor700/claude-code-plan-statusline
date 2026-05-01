@@ -69,13 +69,6 @@ fmt_when() {
 segments=()
 segments+=("$(printf '\033[1m%s\033[0m' "$model")")
 
-if [[ -n "$ctx_pct" ]]; then
-  pct=${ctx_pct%.*}
-  size_label=""
-  [[ -n "$ctx_size" ]] && size_label=" of $(fmt_size "$ctx_size")"
-  segments+=("$(colorize "$ctx_pct")$(ctx_circle "$ctx_pct") ${pct}%${size_label}$(reset_color)")
-fi
-
 if [[ -n "$five_pct" ]]; then
   pct=${five_pct%.*}
   segments+=("$(colorize "$five_pct")5h: ${pct}%$(reset_color) (→$(fmt_time "$five_reset"))")
@@ -84,6 +77,13 @@ fi
 if [[ -n "$week_pct" ]]; then
   pct=${week_pct%.*}
   segments+=("$(colorize "$week_pct")week: ${pct}%$(reset_color) (→$(fmt_when "$week_reset"))")
+fi
+
+if [[ -n "$ctx_pct" ]]; then
+  pct=${ctx_pct%.*}
+  size_label=""
+  [[ -n "$ctx_size" ]] && size_label=" of $(fmt_size "$ctx_size")"
+  segments+=("$(colorize "$ctx_pct")$(ctx_circle "$ctx_pct") ${pct}%${size_label}$(reset_color)")
 fi
 
 if [[ -z "$ctx_pct" && -z "$five_pct" && -z "$week_pct" ]]; then
