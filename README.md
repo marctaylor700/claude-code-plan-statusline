@@ -55,8 +55,6 @@ Please install the plan-statusline from https://github.com/blazemalan/claude-cod
 1. Download https://raw.githubusercontent.com/blazemalan/claude-code-plan-statusline/main/statusline.sh to ~/.claude/hooks/plan-statusline.sh and make it executable.
 2. Add a "statusLine" entry to ~/.claude/settings.json so it runs `bash ~/.claude/hooks/plan-statusline.sh`. Preserve all existing keys in that file.
 3. Make sure jq is installed (brew install jq if it isn't).
-
-When you're done, tell me to start a new Claude Code session and make a request so the bars appear.
 ```
 
 That's it. Claude Code will do the file work and the settings edit, ask for permission as it goes, and tell you when it's ready.
@@ -87,7 +85,7 @@ Start a new Claude Code session, make a request, and the bars appear.
 
 ## Requirements
 
-- **macOS** (the script uses BSD `date` syntax — Linux/WSL would need a small tweak in `fmt_time` and `fmt_when`)
+- **macOS, Linux, or WSL** (the script handles both BSD `date -r` and GNU `date -d @`)
 - Claude Code v2.1.80 or later
 - `jq` (preinstalled on macOS; `brew install jq` if missing)
 - Bash 3.2+

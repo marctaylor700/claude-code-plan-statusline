@@ -7,13 +7,17 @@ set -uo pipefail
 
 input=$(cat)
 
-model=$(printf '%s' "$input"      | jq -r '.model.display_name // .model.id // "Claude"')
-five_pct=$(printf '%s' "$input"   | jq -r '.rate_limits.five_hour.used_percentage // empty')
-five_reset=$(printf '%s' "$input" | jq -r '.rate_limits.five_hour.resets_at // empty')
-week_pct=$(printf '%s' "$input"   | jq -r '.rate_limits.seven_day.used_percentage // empty')
-week_reset=$(printf '%s' "$input" | jq -r '.rate_limits.seven_day.resets_at // empty')
-ctx_pct=$(printf '%s' "$input"    | jq -r '.context_window.used_percentage // empty')
-ctx_size=$(printf '%s' "$input"   | jq -r '.context_window.context_window_size // empty')
+IFS=$'\t' read -r model five_pct five_reset week_pct week_reset ctx_pct ctx_size < <(
+  printf '%s' "$input" | jq -r '[
+    .model.display_name // .model.id // "Claude",
+    .rate_limits.five_hour.used_percentage // "",
+    .rate_limits.five_hour.resets_at // "",
+    .rate_limits.seven_day.used_percentage // "",
+    .rate_limits.seven_day.resets_at // "",
+    .context_window.used_percentage // "",
+    .context_window.context_window_size // ""
+  ] | @tsv'
+)
 
 # Color thresholds: green <50, yellow >=50, orange >=70, red >=90
 colorize() {
@@ -27,10 +31,16 @@ colorize() {
 }
 reset_color() { printf '\033[0m'; }
 
+# Format an epoch with a strftime string. BSD date (macOS) uses `-r`; GNU date (Linux/WSL) uses `-d @`.
+date_fmt() {
+  local epoch=$1 fmt=$2
+  date -r "$epoch" "$fmt" 2>/dev/null || date -d "@$epoch" "$fmt" 2>/dev/null
+}
+
 fmt_time() {
   local epoch=$1
   [[ -z "$epoch" ]] && return
-  date -r "$epoch" "+%-I:%M%p" 2>/dev/null | tr '[:upper:]' '[:lower:]'
+  date_fmt "$epoch" "+%-I:%M%p" | tr '[:upper:]' '[:lower:]'
 }
 
 # Five-step Unicode circle that fills as percentage rises.
@@ -59,10 +69,10 @@ fmt_size() {
 fmt_when() {
   local epoch=$1
   [[ -z "$epoch" ]] && return
-  if [[ "$(date -r "$epoch" "+%Y-%m-%d" 2>/dev/null)" == "$(date "+%Y-%m-%d")" ]]; then
+  if [[ "$(date_fmt "$epoch" "+%Y-%m-%d")" == "$(date "+%Y-%m-%d")" ]]; then
     fmt_time "$epoch"
   else
-    date -r "$epoch" "+%a" 2>/dev/null | tr '[:upper:]' '[:lower:]'
+    date_fmt "$epoch" "+%a" | tr '[:upper:]' '[:lower:]'
   fi
 }
 
