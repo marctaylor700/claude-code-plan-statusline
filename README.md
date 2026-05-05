@@ -4,7 +4,14 @@ A tiny Claude Code statusline that shows my **actual plan rate-limit usage** - t
 
 ![statusline screenshot](screenshot.png)
 
-5-hour session bar, 7-day weekly bar, and a context-window fill circle for the current chat — all color-coded green → yellow → orange → red as you climb, with reset times in your local timezone (a weekday like `thu` if the reset isn't today).
+Reading left to right:
+
+- **Model name** in bold — whatever Claude Code is calling the active model (e.g. `Opus 4.7 (1M context)`).
+- **`5h: 14% (→11:00am)`** — your 5-hour rolling plan window and when it resets (local time).
+- **`week: 47% (→thu)`** — your 7-day rolling plan window. Shows the time if the reset is today, the lowercase weekday otherwise, so you can tell at a glance whether the limit comes back today or in a few days.
+- **`○ 6% of 1M`** — context-window fill for *the current chat*. This is **not** a plan limit. It's how much of the model's working memory this conversation has consumed (6% of 1,000,000 tokens here). It grows monotonically as the chat gets longer; there's no time-based reset — starting a new chat is what clears it. The circle (`○ ◔ ◑ ◕ ●`) is a five-step visual of the same percentage, mostly so you can spot the trend without reading the number.
+
+All three percentages share the same color scale: green → yellow → orange → red as they climb.
 
 ## Why this exists
 
