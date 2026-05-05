@@ -135,21 +135,25 @@ render_default() {
 }
 
 # ============================================================================
-# Theme: claude — animated sparkle + inline progress bars + warm palette
+# Theme: claude — Powerline-style colored "pills"
+# Each segment is a colored background block with bright-white text on top.
+# Tier shows in the bg color of each percentage pill (calm green → urgent red).
+# Animated sparkle prefixes the model pill and twinkles between renders.
 # ============================================================================
 
-CL_AMBER='\033[38;5;214m'
-CL_GREEN='\033[32m'
-CL_ORANGE='\033[38;5;208m'
-CL_RED='\033[31m'
-CL_DIM_RED='\033[2;31m'
-CL_DIM='\033[2m'
-CL_DIM_IT='\033[2;3m'
+# Background colors (256-color)
+CL_BG_AMBER='\033[48;5;94m'    # dark amber for the model pill
+CL_BG_GREEN='\033[48;5;22m'    # calm: dark green
+CL_BG_OLIVE='\033[48;5;100m'   # warning: olive
+CL_BG_ORANGE='\033[48;5;166m'  # hot: orange
+CL_BG_RED='\033[48;5;88m'      # urgent: dark red
+
+CL_FG_WHITE='\033[97m'         # bright white text
 CL_BOLD='\033[1m'
 CL_RESET='\033[0m'
 
 # Sparkle frames: cycled by current epoch second so the leading char "twinkles"
-# between renders. Six frames, ~6s full cycle.
+# between renders. Six frames; one rotates per second of wall-clock time.
 CL_SPARKLES=('✶' '✷' '✸' '✳' '✴' '✻')
 
 claude_sparkle() {
@@ -157,18 +161,18 @@ claude_sparkle() {
   printf '%s' "${CL_SPARKLES[$frame]}"
 }
 
-claude_tier_color() {
+# Tier background for a percentage pill.
+claude_tier_bg() {
   local pct=${1%.*}
   [[ -z "$pct" ]] && return
-  if   ((pct >= 90)); then printf '%b' "$CL_RED"
-  elif ((pct >= 70)); then printf '%b' "$CL_ORANGE"
-  elif ((pct >= 50)); then printf '%b' "$CL_AMBER"
-  else                     printf '%b' "$CL_GREEN"
+  if   ((pct >= 90)); then printf '%b' "$CL_BG_RED"
+  elif ((pct >= 70)); then printf '%b' "$CL_BG_ORANGE"
+  elif ((pct >= 50)); then printf '%b' "$CL_BG_OLIVE"
+  else                     printf '%b' "$CL_BG_GREEN"
   fi
 }
 
-# Single fill-circle, colored by tier. Same five-step glyph set as default's ctx circle,
-# now used in front of each of the three percentages.
+# Five-step fill circle (drawn in white on the pill's bg).
 claude_circle() {
   local pct=${1%.*}
   [[ -z "$pct" ]] && return
@@ -182,46 +186,45 @@ claude_circle() {
 
 render_claude() {
   if [[ -z "$ctx_pct" && -z "$five_pct" && -z "$week_pct" ]]; then
-    printf '%b%s%b %busage data pending - make a request%b' \
-      "$CL_AMBER" "$(claude_sparkle)" "$CL_RESET" "$CL_DIM_IT" "$CL_RESET"
+    printf '%b%b %s usage data pending - make a request %b' \
+      "$CL_BG_AMBER" "$CL_FG_WHITE" "$(claude_sparkle)" "$CL_RESET"
     return
   fi
 
-  local sep
-  sep=$(printf '%b  ·  %b' "$CL_DIM" "$CL_RESET")
+  local gap="  "  # space between pills (renders in default bg)
 
-  # ✳  Opus 4.7
-  printf '%b%s%b  %b%s%b' \
-    "$CL_AMBER" "$(claude_sparkle)" "$CL_RESET" \
+  # Model pill: amber bg, bold white text, animated sparkle prefix.
+  printf '%b%b %s %b%s %b' \
+    "$CL_BG_AMBER" "$CL_FG_WHITE" "$(claude_sparkle)" \
     "$CL_BOLD" "$model" "$CL_RESET"
 
   if [[ -n "$five_pct" ]]; then
     local pct=${five_pct%.*}
-    printf '%b' "$sep"
-    printf '%b%s%b 5h %b%d%%%b %b(→%s)%b' \
-      "$(claude_tier_color "$five_pct")" "$(claude_circle "$five_pct")" "$CL_RESET" \
-      "$(claude_tier_color "$five_pct")" "$pct" "$CL_RESET" \
-      "$CL_DIM_IT" "$(fmt_time "$five_reset")" "$CL_RESET"
+    printf '%s%b%b %s 5h %d%% →%s %b' \
+      "$gap" \
+      "$(claude_tier_bg "$five_pct")" "$CL_FG_WHITE" \
+      "$(claude_circle "$five_pct")" "$pct" \
+      "$(fmt_time "$five_reset")" "$CL_RESET"
   fi
 
   if [[ -n "$week_pct" ]]; then
     local pct=${week_pct%.*}
-    printf '%b' "$sep"
-    printf '%b%s%b week %b%d%%%b %b(→%s)%b' \
-      "$(claude_tier_color "$week_pct")" "$(claude_circle "$week_pct")" "$CL_RESET" \
-      "$(claude_tier_color "$week_pct")" "$pct" "$CL_RESET" \
-      "$CL_DIM_IT" "$(fmt_when "$week_reset")" "$CL_RESET"
+    printf '%s%b%b %s week %d%% →%s %b' \
+      "$gap" \
+      "$(claude_tier_bg "$week_pct")" "$CL_FG_WHITE" \
+      "$(claude_circle "$week_pct")" "$pct" \
+      "$(fmt_when "$week_reset")" "$CL_RESET"
   fi
 
   if [[ -n "$ctx_pct" ]]; then
     local pct=${ctx_pct%.*}
     local size_label=""
-    [[ -n "$ctx_size" ]] && size_label=" of $(fmt_size "$ctx_size")"
-    printf '%b' "$sep"
-    printf '%b%s%b %b%d%%%b%b%s%b' \
-      "$(claude_tier_color "$ctx_pct")" "$(claude_circle "$ctx_pct")" "$CL_RESET" \
-      "$(claude_tier_color "$ctx_pct")" "$pct" "$CL_RESET" \
-      "$CL_DIM_IT" "$size_label" "$CL_RESET"
+    [[ -n "$ctx_size" ]] && size_label=" / $(fmt_size "$ctx_size")"
+    printf '%s%b%b %s ctx %d%%%s %b' \
+      "$gap" \
+      "$(claude_tier_bg "$ctx_pct")" "$CL_FG_WHITE" \
+      "$(claude_circle "$ctx_pct")" "$pct" \
+      "$size_label" "$CL_RESET"
   fi
 }
 
