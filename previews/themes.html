@@ -150,7 +150,6 @@
     .theme:nth-of-type(1) { animation-delay: 0.05s; }
     .theme:nth-of-type(2) { animation-delay: 0.18s; }
     .theme:nth-of-type(3) { animation-delay: 0.32s; }
-    .theme:nth-of-type(4) { animation-delay: 0.46s; }
 
     @keyframes cardIn {
       from {
@@ -343,28 +342,6 @@
       font-style: italic;
     }
 
-    /* ===== Theme: pulse — colored pills with bg-fill encoding %  =====
-       Each pill's bg splits at the percentage threshold. Filled portion uses
-       the bright tier color with dark text; empty portion uses a dim shade of
-       the same color with light text. The pill IS the progress bar. Mirrors
-       the bash 256-color values exactly. */
-
-    .statusline .p-pill {
-      display: inline-block;
-      margin-right: 0.45em;
-      letter-spacing: 0.005em;
-      white-space: pre;  /* preserve the leading/trailing space padding */
-    }
-    .statusline .p-pill:last-child { margin-right: 0; }
-    .statusline .p-pill .filled,
-    .statusline .p-pill .empty {
-      display: inline-block;
-      padding: 0.15em 0;
-    }
-    .statusline .p-pill .filled { color: #080808; }   /* 256-232 dark */
-    .statusline .p-pill .empty  { color: #eeeeee; }   /* 256-255 light */
-    .statusline .p-pill .filled b { font-weight: 700; }
-
     /* ===== Theme: glow (bold + bright tier colors, no halo)
        Terminals can't text-shadow. Glow's "neon" feel comes from bold weight
        + the brightest readable 256-color value of each tier. */
@@ -374,19 +351,19 @@
       padding: 0 0.55em;
     }
     .statusline .g-sparkle {
-      color: #ffaf00;       /* 256-214 */
+      color: #ff00af;       /* 256-199 — signature magenta, the headline tube */
       font-weight: 700;
     }
     .statusline .g-model {
       font-weight: 700;
       /* no color = uses parent (terminal default fg, adapts to bg) */
     }
-    .statusline .g-glow-green { color: #00af00; font-weight: 700; }   /* 256-34 */
-    .statusline .g-glow-gold  { color: #d7af00; font-weight: 700; }   /* 256-178 */
-    .statusline .g-glow-orange{ color: #ff8700; font-weight: 700; }   /* 256-208 */
-    .statusline .g-glow-red   { color: #ff0000; font-weight: 700; }   /* 256-196 */
+    .statusline .g-calm   { color: #00d75f; font-weight: 700; }   /* 256-41  — electric mint */
+    .statusline .g-warn   { color: #ff5faf; font-weight: 700; }   /* 256-205 — light hot pink */
+    .statusline .g-hot    { color: #ff00af; font-weight: 700; }   /* 256-199 — magenta (= sparkle) */
+    .statusline .g-urgent { color: #ff005f; font-weight: 700; }   /* 256-197 — pink-red, alarm-on-theme */
     .statusline .g-meta {
-      color: #888;
+      color: #d787af;          /* 256-175 — desaturated rose, the bloom halo */
       font-style: italic;
     }
 
@@ -417,18 +394,17 @@
       .theme-meta { text-align: left; }
       .term-body { padding: 1rem 1rem; font-size: 0.85rem; }
       .statusline { font-size: 0.85rem; }
-      .statusline .p-pill { padding: 0.2em 0.55em; margin-right: 0.4em; font-size: 0.85rem; }
     }
   </style>
 </head>
 
 <body>
   <main>
-    <p class="eyebrow">Statusline · 4 themes · live preview</p>
-    <h1>Four ways the bottom of your terminal could <em>feel</em>.</h1>
+    <p class="eyebrow">Statusline · 3 themes · live preview</p>
+    <h1>Three ways the bottom of your terminal could <em>feel</em>.</h1>
     <p class="lede">
       Same data — your Claude plan's 5-hour and weekly rate-limit windows, and the
-      current chat's context-window fill. Four different visual languages for it.
+      current chat's context-window fill. Three different visual languages for it.
       Each theme below is rendering live: percentages cycle through every tier, and
       animated elements update in real time. Pick one — or tell me what's missing.
     </p>
@@ -487,47 +463,21 @@
       </div>
     </article>
 
-    <!-- Theme 3: pulse -->
-    <article class="theme" data-theme="pulse">
-      <header class="theme-head">
-        <div>
-          <p class="theme-num">03 / bold</p>
-          <h2>Pulse <span class="pin">animated</span></h2>
-        </div>
-        <div class="theme-meta">colored pills · <span>tier as background</span></div>
-      </header>
-      <p class="theme-desc">
-        Every segment becomes a rounded, colored pill — Powerline-style — with
-        dark text on a saturated background. The amber pill is permanent (model);
-        the three usage pills shift color as their tier crosses thresholds, so a
-        hot week is visible as <em>shape</em>, not just digits. Subtle gradient
-        on each pill gives them dimension.
-      </p>
-      <div class="term">
-        <div class="term-bar">
-          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-          <span class="label">claude-code · zsh</span>
-        </div>
-        <div class="term-body">
-          <div class="prompt"><span class="arrow">›</span> <span class="path">~/p/cc-statusline</span> <span class="text">claude code is thinking…</span></div>
-          <div class="statusline" data-render="pulse"></div>
-        </div>
-      </div>
-    </article>
-
-    <!-- Theme 4: glow -->
+    <!-- Theme 3: glow -->
     <article class="theme" data-theme="glow">
       <header class="theme-head">
         <div>
-          <p class="theme-num">04 / maximal</p>
+          <p class="theme-num">03 / maximal</p>
           <h2>Glow <span class="pin">animated</span></h2>
         </div>
-        <div class="theme-meta">neon · <span>text-shadow halos</span></div>
+        <div class="theme-meta">pink neon · <span>arcade palette</span></div>
       </header>
       <p class="theme-desc">
-        Every segment radiates. Tier color is in the glow halo, not the text body —
-        so the line stays readable but each percentage has weight. The whole
-        statusline breathes with a slow brightness pulse. Loud, but disciplined.
+        Pink neon arcade. A magenta sparkle anchors the line, and the data ramp
+        climbs through the pink spectrum: electric mint when calm, light hot pink
+        when warning, signature magenta when hot — then breaks to red at urgent
+        for the alarm escape. Two hue families total. Every reset time trails
+        an italic rose halo, the soft bloom around bright tubes.
       </p>
       <div class="term">
         <div class="term-bar">
@@ -648,47 +598,10 @@
         ].join(" ");
       },
 
-      pulse(d, now) {
-        const sparkle = pulseSparkle(now);
-
-        // 256-color hex equivalents (bright | dim) for each tier
-        const TIERS = [
-          ["#00d700", "#005f00"],  // calm   (40 / 22)
-          ["#ffd700", "#878700"],  // warn   (220 / 100)
-          ["#ff8700", "#af5f00"],  // hot    (208 / 130)
-          ["#ff0000", "#870000"],  // urgent (196 / 88)
-        ];
-        const escapeChar = (c) => c === "<" ? "&lt;" : c === ">" ? "&gt;" : c === "&" ? "&amp;" : c;
-
-        // Split a pill's text at the fill threshold; each half gets its own bg+fg.
-        const fillPill = (text, pct, tierPair) => {
-          const [bright, dim] = tierPair;
-          const total = [...text].length; // char count, multibyte-safe
-          const filled = Math.max(0, Math.min(total, Math.floor(pct * total / 100)));
-          const chars = [...text];
-          const left = chars.slice(0, filled).map(escapeChar).join("");
-          const right = chars.slice(filled).map(escapeChar).join("");
-          return `<span class="p-pill"><span class="filled" style="background:${bright}">${left}</span><span class="empty" style="background:${dim}">${right}</span></span>`;
-        };
-
-        // Model pill — solid amber, no fill split (model isn't a usage metric)
-        const modelPill =
-          `<span class="p-pill"><span class="filled" style="background:#ffaf00">` +
-          ` ${escapeChar(sparkle)} <b>${d.model}</b> ` +
-          `</span></span>`;
-
-        return [
-          modelPill,
-          fillPill(` ${circleGlyph(d.pct5)} 5h ${d.pct5}% →${fmtTime(d.pct5)} `, d.pct5, TIERS[tier(d.pct5)]),
-          fillPill(` ${circleGlyph(d.pctW)} week ${d.pctW}% →${fmtDay(d.pctW)} `, d.pctW, TIERS[tier(d.pctW)]),
-          fillPill(` ${circleGlyph(d.pctC)} ${d.pctC}% / 1M `, d.pctC, TIERS[tier(d.pctC)]),
-        ].join(" ");
-      },
-
       glow(d, now) {
         const sparkle = pulseSparkle(now);
         const glowCls = (p) =>
-          ["g-glow-green", "g-glow-gold", "g-glow-orange", "g-glow-red"][tier(p)];
+          ["g-calm", "g-warn", "g-hot", "g-urgent"][tier(p)];
 
         return [
           `<span class="g-sparkle">${sparkle}</span> <span class="g-model">${d.model}</span>`,

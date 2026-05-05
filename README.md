@@ -15,7 +15,7 @@ All three percentages share the same color scale: green → yellow → orange �
 
 ## Themes
 
-Four themes ship in the box. Pick one by creating `~/.claude/plan-statusline.conf`:
+Three themes ship in the box. Pick one by creating `~/.claude/plan-statusline.conf`:
 
 ```
 theme=hearth
@@ -27,8 +27,7 @@ Then start a fresh Claude Code session.
 |----------|---------------------------------------------------------------------------------------|
 | `default`| Today's look — basic ANSI colors, pipe separators, single circle on context.          |
 | `hearth` | Warm amber, restrained. Pulsing sparkle prefixes the model name and a "shimmer" character drifts across it between renders. Dim italic reset times. |
-| `pulse`  | Powerline-style colored pills. Each segment is a rounded background block; tier color shifts the whole pill, not just the digits. Dark text on bright bg. |
-| `glow`   | Bold bright neon-style. Every segment in the brightest 256-color value of its tier; sparkle and model name in bold cream/amber. |
+| `glow`   | Pink neon arcade. Magenta sparkle, mint→pink→magenta→red tier ramp through the pink spectrum, italic rose halo on every reset time. Two-hue palette, no warm clutter. |
 
 If the file is missing or the theme name is unrecognized, the script falls back to `default` — your prior install keeps working untouched.
 
