@@ -244,24 +244,46 @@ render_hearth() {
 #   • animated sparkle inside the model pill
 # ============================================================================
 
-P_BG_AMBER='\033[48;5;214m'   # amber for model pill — distinct from tiers
-P_BG_GREEN='\033[48;5;40m'    # calm: bright clean green
-P_BG_GOLD='\033[48;5;220m'    # warning: gold
-P_BG_ORANGE='\033[48;5;208m'  # hot: vivid orange
-P_BG_RED='\033[48;5;196m'     # urgent: pure red
-P_FG_DARK='\033[38;5;232m'    # near-black text on bright bg
+# Each tier has TWO bg colors: bright (filled portion of pill) and dim (empty
+# portion). The pill becomes its own progress bar — the bright/dim split happens
+# at the percentage threshold inside each tier-colored pill.
+P_BG_AMBER='\033[48;5;214m'        # amber, model pill (no fill split — solid)
+P_BG_GREEN='\033[48;5;40m';      P_BG_GREEN_DIM='\033[48;5;22m'
+P_BG_GOLD='\033[48;5;220m';      P_BG_GOLD_DIM='\033[48;5;100m'
+P_BG_ORANGE='\033[48;5;208m';    P_BG_ORANGE_DIM='\033[48;5;130m'
+P_BG_RED='\033[48;5;196m';       P_BG_RED_DIM='\033[48;5;88m'
+
+P_FG_DARK='\033[38;5;232m'    # near-black, used on bright bg
+P_FG_LIGHT='\033[38;5;255m'   # near-white, used on dim bg
 P_BOLD='\033[1m'
 P_NOBOLD='\033[22m'
 P_RESET='\033[0m'
 
-pulse_tier_bg() {
+# Pick (bright, dim) bg pair for a tier; outputs "bright|dim".
+pulse_tier_pair() {
   local pct=${1%.*}
-  [[ -z "$pct" ]] && return
-  if   ((pct >= 90)); then printf '%b' "$P_BG_RED"
-  elif ((pct >= 70)); then printf '%b' "$P_BG_ORANGE"
-  elif ((pct >= 50)); then printf '%b' "$P_BG_GOLD"
-  else                     printf '%b' "$P_BG_GREEN"
+  if   ((pct >= 90)); then printf '%s|%s' "$P_BG_RED"    "$P_BG_RED_DIM"
+  elif ((pct >= 70)); then printf '%s|%s' "$P_BG_ORANGE" "$P_BG_ORANGE_DIM"
+  elif ((pct >= 50)); then printf '%s|%s' "$P_BG_GOLD"   "$P_BG_GOLD_DIM"
+  else                     printf '%s|%s' "$P_BG_GREEN"  "$P_BG_GREEN_DIM"
   fi
+}
+
+# Render TEXT as a "filled" pill: first <pct%> of characters use bright bg + dark
+# fg, the rest use dim bg + light fg. The pill's own width is the progress bar.
+render_filled_pill() {
+  local text=$1 pct=$2 bg_bright=$3 bg_dim=$4
+  local total=${#text}
+  (( total < 1 )) && return
+  local filled=$(( pct * total / 100 ))
+  (( filled > total )) && filled=total
+  (( filled < 0 )) && filled=0
+  local left="${text:0:filled}"
+  local right="${text:filled}"
+  printf '%b%b%s%b%b%s%b' \
+    "$bg_bright" "$P_FG_DARK"  "$left" \
+    "$bg_dim"    "$P_FG_LIGHT" "$right" \
+    "$P_RESET"
 }
 
 render_pulse() {
@@ -273,40 +295,34 @@ render_pulse() {
 
   local gap=" "
 
+  # Model pill: solid amber (no fill split — model isn't a usage metric).
   printf '%b%b %s %b%s%b %b' \
     "$P_BG_AMBER" "$P_FG_DARK" "$(sparkle_now)" \
     "$P_BOLD" "$model" "$P_NOBOLD" "$P_RESET"
 
   if [[ -n "$five_pct" ]]; then
-    local pct=${five_pct%.*}
-    printf '%s%b%b %s 5h %b%d%%%b →%s %b' \
-      "$gap" \
-      "$(pulse_tier_bg "$five_pct")" "$P_FG_DARK" \
-      "$(ctx_circle "$five_pct")" \
-      "$P_BOLD" "$pct" "$P_NOBOLD" \
-      "$(fmt_time "$five_reset")" "$P_RESET"
+    local pct=${five_pct%.*} pair bright dim pill
+    pair=$(pulse_tier_pair "$five_pct"); bright="${pair%|*}"; dim="${pair#*|}"
+    pill=" $(ctx_circle "$five_pct") 5h ${pct}% →$(fmt_time "$five_reset") "
+    printf '%s' "$gap"
+    render_filled_pill "$pill" "$pct" "$bright" "$dim"
   fi
 
   if [[ -n "$week_pct" ]]; then
-    local pct=${week_pct%.*}
-    printf '%s%b%b %s week %b%d%%%b →%s %b' \
-      "$gap" \
-      "$(pulse_tier_bg "$week_pct")" "$P_FG_DARK" \
-      "$(ctx_circle "$week_pct")" \
-      "$P_BOLD" "$pct" "$P_NOBOLD" \
-      "$(fmt_when "$week_reset")" "$P_RESET"
+    local pct=${week_pct%.*} pair bright dim pill
+    pair=$(pulse_tier_pair "$week_pct"); bright="${pair%|*}"; dim="${pair#*|}"
+    pill=" $(ctx_circle "$week_pct") week ${pct}% →$(fmt_when "$week_reset") "
+    printf '%s' "$gap"
+    render_filled_pill "$pill" "$pct" "$bright" "$dim"
   fi
 
   if [[ -n "$ctx_pct" ]]; then
-    local pct=${ctx_pct%.*}
-    local size_label=""
+    local pct=${ctx_pct%.*} pair bright dim pill size_label=""
+    pair=$(pulse_tier_pair "$ctx_pct"); bright="${pair%|*}"; dim="${pair#*|}"
     [[ -n "$ctx_size" ]] && size_label=" / $(fmt_size "$ctx_size")"
-    printf '%s%b%b %s %b%d%%%b%s %b' \
-      "$gap" \
-      "$(pulse_tier_bg "$ctx_pct")" "$P_FG_DARK" \
-      "$(ctx_circle "$ctx_pct")" \
-      "$P_BOLD" "$pct" "$P_NOBOLD" \
-      "$size_label" "$P_RESET"
+    pill=" $(ctx_circle "$ctx_pct") ${pct}%${size_label} "
+    printf '%s' "$gap"
+    render_filled_pill "$pill" "$pct" "$bright" "$dim"
   fi
 }
 
