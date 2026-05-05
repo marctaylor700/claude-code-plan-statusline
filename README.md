@@ -94,9 +94,7 @@ Start a new Claude Code session, make a request, and the bars appear.
 
 ## How I made it
 
-Vibes-coded it in a single Claude Code session. I asked Claude to install "that popular plugin that shows usage at the bottom" - it installed [ccusage](https://github.com/ryoppippi/ccusage), which is the most popular one but shows API costs, which is the wrong thing for a plan subscriber. After I pointed out that I wanted *plan* usage and not dollars, Claude found that v2.1.80 added stdin rate-limit data and wrote this script against that spec. The whole thing took one back-and-forth.
-
-The script is ~100 lines, no dependencies beyond `jq`. Fork it, change the colors, change the separator, add your git branch - it's a small enough surface area to make your own.
+Vibes.
 
 ## License
 
