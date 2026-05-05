@@ -156,34 +156,35 @@ render_default() {
 #   • tier color only kicks in for warn (orange) and urgent (bold red)
 # ============================================================================
 
-H_AMBER='\033[38;5;214m'      # warm amber
-H_CREAM='\033[38;5;230m'      # cream/off-white
-H_DIM='\033[2;38;5;241m'      # dim warm grey
-H_DIM_IT='\033[2;3;38;5;241m' # dim italic
-H_ORANGE='\033[38;5;208m'     # warning
-H_RED='\033[1;38;5;196m'      # bold red, urgent
+H_AMBER='\033[38;5;214m'    # warm amber — visible on light & dark
+H_DIM='\033[2m'             # dim attribute — adapts to terminal bg
+H_DIM_IT='\033[2;3m'        # dim italic — adapts
+H_ORANGE='\033[38;5;208m'   # warning
+H_RED='\033[1;38;5;196m'    # bold red, urgent
 H_BOLD='\033[1m'
 H_NOBOLD='\033[22m'
 H_RESET='\033[0m'
 
+# Body text uses the terminal's default foreground so the theme reads on
+# both light and dark backgrounds. Tier colors only kick in for warn/urgent.
 hearth_tier_fg() {
   local pct=${1%.*}
-  [[ -z "$pct" ]] && { printf '%b' "$H_CREAM"; return; }
+  [[ -z "$pct" ]] && return  # empty = no color = terminal default
   if   ((pct >= 90)); then printf '%b' "$H_RED"
   elif ((pct >= 70)); then printf '%b' "$H_ORANGE"
-  else                     printf '%b' "$H_CREAM"
   fi
+  # else: silent → text renders in default fg
 }
 
 # Render TEXT with one character bolded; the bold position rotates per second
-# so a "shimmer" appears to drift across the text between renders.
+# so a "shimmer" appears to drift across the text between renders. No color
+# applied — the terminal's default fg carries it on both light & dark bg.
 hearth_shimmer() {
   local text=$1
   local n=${#text}
   (( n == 0 )) && { printf '%s' "$text"; return; }
   local pos=$(( $(date +%s) % n ))
   local i char
-  printf '%b' "$H_CREAM"
   for ((i=0; i<n; i++)); do
     char="${text:i:1}"
     if (( i == pos )); then
@@ -192,7 +193,6 @@ hearth_shimmer() {
       printf '%s' "$char"
     fi
   done
-  printf '%b' "$H_RESET"
 }
 
 render_hearth() {
@@ -311,14 +311,14 @@ render_pulse() {
 #   • animated sparkle, dim italic metadata, dim middle-dot separators
 # ============================================================================
 
-G_AMBER='\033[1;38;5;214m'    # bold amber
-G_MODEL='\033[1;38;5;230m'    # bold cream
-G_GREEN='\033[1;38;5;46m'     # bold pure green
-G_GOLD='\033[1;38;5;226m'     # bold yellow
-G_ORANGE='\033[1;38;5;208m'   # bold orange
-G_RED='\033[1;38;5;196m'      # bold red
-G_DIM='\033[2;38;5;241m'
-G_DIM_IT='\033[2;3;38;5;241m'
+G_AMBER='\033[1;38;5;214m'  # bold amber — readable on light & dark
+G_MODEL='\033[1m'           # bold only — uses terminal default fg, adapts
+G_GREEN='\033[1;38;5;34m'   # bold green (medium-saturation, works on both)
+G_GOLD='\033[1;38;5;178m'   # bold gold (pure-yellow 226 disappears on white)
+G_ORANGE='\033[1;38;5;208m' # bold orange
+G_RED='\033[1;38;5;160m'    # bold red (medium — 196 is fine but 160 is calmer)
+G_DIM='\033[2m'             # plain dim — adapts to bg
+G_DIM_IT='\033[2;3m'        # dim italic — adapts
 G_RESET='\033[0m'
 
 glow_tier_fg() {
