@@ -315,93 +315,81 @@
     .statusline .d-red { color: #f87171; }
     .statusline .d-default { color: #cfc7b3; }
 
-    /* ===== Theme: hearth (warm, restrained, animated) ===== */
+    /* ===== Theme: hearth (warm, restrained — what 256-color actually delivers)
+       No color on model name (terminal default fg, adapts to bg). Shimmer is
+       just bold weight — terminals can't text-shadow. Separators use dim
+       attribute (rendered here as a muted color). */
 
     .statusline .h-sparkle {
-      color: var(--amber);
-      display: inline-block;
+      color: #ffaf00;          /* 256-214 amber */
       font-weight: 500;
     }
-    .statusline .h-model { color: #f5e9c8; font-weight: 600; letter-spacing: 0.01em; }
-    .statusline .h-shimmer-on {
-      color: #fff8e0;
-      text-shadow: 0 0 6px rgba(245, 230, 180, 0.6);
-      font-weight: 700;
+    .statusline .h-model {
+      /* no styling — renders in terminal-body color, matching bash default-fg */
     }
-    .statusline .h-sep { color: #564b34; padding: 0 0.45em; }
-    .statusline .h-glyph { color: var(--amber); }
-    .statusline .h-num { color: #f5e9c8; }
-    .statusline .h-meta { color: #6e6248; font-style: italic; font-weight: 300; }
-    .statusline .h-warn { color: var(--orange); }
-    .statusline .h-urgent { color: var(--red); font-weight: 600; }
+    .statusline .h-shimmer-on {
+      font-weight: 700;        /* bold only, no color change, no shadow */
+    }
+    .statusline .h-sep {
+      color: #6f6757;          /* dim — would adapt to terminal bg in reality */
+      padding: 0 0.45em;
+    }
+    .statusline .h-glyph { color: #ffaf00; }    /* 256-214 amber */
+    .statusline .h-num   { /* no styling — terminal default fg */ }
+    .statusline .h-warn  { color: #ff8700; }    /* 256-208 orange */
+    .statusline .h-urgent { color: #ff0000; font-weight: 700; }  /* 256-196 bold red */
+    .statusline .h-meta  {
+      color: #6f6757;          /* dim italic, generic */
+      font-style: italic;
+    }
 
-    /* ===== Theme: pulse (colored pill segments) ===== */
+    /* ===== Theme: pulse (256-color pill segments — flat, no gradient) =====
+       Colors mirror the bash 256-color values: 214 amber, 40 green, 220 gold,
+       208 orange, 196 red. Fg is 232 (near-black). No border-radius — terminals
+       can't render rounded corners; pills are rectangular blocks. */
 
     .statusline .p-pill {
       display: inline-block;
-      padding: 0.25em 0.75em;
-      margin-right: 0.55em;
-      border-radius: 999px;
-      color: #15110a;
+      padding: 0.15em 0.7em;
+      margin-right: 0.45em;
+      color: #1a1208;
       font-weight: 500;
       letter-spacing: 0.005em;
     }
     .statusline .p-pill:last-child { margin-right: 0; }
-    .statusline .p-pill.amber { background: linear-gradient(135deg, #f5b94a, #d99325); }
-    .statusline .p-pill.green { background: linear-gradient(135deg, #92e08e, #5da559); }
-    .statusline .p-pill.gold { background: linear-gradient(135deg, #ecd072, #b6913a); color: #0c0a06; }
-    .statusline .p-pill.orange { background: linear-gradient(135deg, #f5a256, #cc6c1e); color: #1a0d05; }
-    .statusline .p-pill.red { background: linear-gradient(135deg, #f07d6a, #b53224); color: #f7e6e0; font-weight: 600; }
-    .statusline .p-glyph { opacity: 0.7; margin-right: 0.25em; }
-    .statusline .p-meta { opacity: 0.65; margin-left: 0.4em; font-size: 0.85em; font-style: italic; }
+    .statusline .p-pill.amber { background: #ffaf00; }   /* 256-214 */
+    .statusline .p-pill.green { background: #00d700; }   /* 256-40 */
+    .statusline .p-pill.gold { background: #ffd700; }    /* 256-220 */
+    .statusline .p-pill.orange { background: #ff8700; }  /* 256-208 */
+    .statusline .p-pill.red { background: #ff0000; }     /* 256-196 */
+    .statusline .p-glyph { margin-right: 0.3em; }
+    .statusline .p-meta { margin-left: 0.45em; font-size: 0.92em; }
     .statusline .p-num { font-weight: 700; }
 
-    /* ===== Theme: glow (neon-style, glowing text on dark) ===== */
+    /* ===== Theme: glow (bold + bright tier colors, no halo)
+       Terminals can't text-shadow. Glow's "neon" feel comes from bold weight
+       + the brightest readable 256-color value of each tier. */
 
-    .statusline .g-base { color: var(--text); }
     .statusline .g-sep {
-      color: var(--copper);
+      color: #555;
       padding: 0 0.55em;
-      opacity: 0.75;
     }
     .statusline .g-sparkle {
-      color: var(--amber);
-      text-shadow: 0 0 6px rgba(232, 169, 56, 0.7), 0 0 14px rgba(232, 169, 56, 0.45);
-      font-weight: 500;
+      color: #ffaf00;       /* 256-214 */
+      font-weight: 700;
     }
     .statusline .g-model {
-      color: #fff5d8;
-      text-shadow: 0 0 6px rgba(245, 230, 180, 0.4);
-      font-weight: 600;
+      font-weight: 700;
+      /* no color = uses parent (terminal default fg, adapts to bg) */
     }
-    .statusline .g-glow-green {
-      color: #6df48e;
-      text-shadow: 0 0 6px rgba(70, 230, 110, 0.55), 0 0 14px rgba(70, 230, 110, 0.3);
-    }
-    .statusline .g-glow-gold {
-      color: #f0d268;
-      text-shadow: 0 0 6px rgba(240, 200, 80, 0.55), 0 0 14px rgba(240, 200, 80, 0.3);
-    }
-    .statusline .g-glow-orange {
-      color: #ffa860;
-      text-shadow: 0 0 6px rgba(255, 130, 50, 0.6), 0 0 14px rgba(255, 130, 50, 0.35);
-    }
-    .statusline .g-glow-red {
-      color: #ff7a6a;
-      text-shadow: 0 0 6px rgba(255, 80, 70, 0.65), 0 0 16px rgba(255, 80, 70, 0.4);
-      font-weight: 600;
-    }
+    .statusline .g-glow-green { color: #00af00; font-weight: 700; }   /* 256-34 */
+    .statusline .g-glow-gold  { color: #d7af00; font-weight: 700; }   /* 256-178 */
+    .statusline .g-glow-orange{ color: #ff8700; font-weight: 700; }   /* 256-208 */
+    .statusline .g-glow-red   { color: #ff0000; font-weight: 700; }   /* 256-196 */
     .statusline .g-meta {
-      color: var(--muted);
+      color: #888;
       font-style: italic;
-      opacity: 0.85;
     }
-
-    @keyframes glowPulse {
-      0%, 100% { filter: brightness(1) drop-shadow(0 0 0 transparent); }
-      50% { filter: brightness(1.18); }
-    }
-    [data-theme="glow"] .statusline { animation: glowPulse 4s ease-in-out infinite; }
 
     /* FOOTER */
 

@@ -244,12 +244,14 @@ render_hearth() {
 #   • animated sparkle inside the model pill
 # ============================================================================
 
-P_BG_AMBER='\033[48;5;208m'   # vivid amber/orange
-P_BG_GREEN='\033[48;5;34m'    # calm: green
-P_BG_GOLD='\033[48;5;178m'    # warning: gold
-P_BG_ORANGE='\033[48;5;202m'  # hot: bright orange
-P_BG_RED='\033[48;5;196m'     # urgent: vivid red
+P_BG_AMBER='\033[48;5;214m'   # amber for model pill — distinct from tiers
+P_BG_GREEN='\033[48;5;40m'    # calm: bright clean green
+P_BG_GOLD='\033[48;5;220m'    # warning: gold
+P_BG_ORANGE='\033[48;5;208m'  # hot: vivid orange
+P_BG_RED='\033[48;5;196m'     # urgent: pure red
 P_FG_DARK='\033[38;5;232m'    # near-black text on bright bg
+P_BOLD='\033[1m'
+P_NOBOLD='\033[22m'
 P_RESET='\033[0m'
 
 pulse_tier_bg() {
@@ -271,24 +273,27 @@ render_pulse() {
 
   local gap=" "
 
-  printf '%b%b %s %s %b' \
-    "$P_BG_AMBER" "$P_FG_DARK" "$(sparkle_now)" "$model" "$P_RESET"
+  printf '%b%b %s %b%s%b %b' \
+    "$P_BG_AMBER" "$P_FG_DARK" "$(sparkle_now)" \
+    "$P_BOLD" "$model" "$P_NOBOLD" "$P_RESET"
 
   if [[ -n "$five_pct" ]]; then
     local pct=${five_pct%.*}
-    printf '%s%b%b %s 5h %d%% →%s %b' \
+    printf '%s%b%b %s 5h %b%d%%%b →%s %b' \
       "$gap" \
       "$(pulse_tier_bg "$five_pct")" "$P_FG_DARK" \
-      "$(ctx_circle "$five_pct")" "$pct" \
+      "$(ctx_circle "$five_pct")" \
+      "$P_BOLD" "$pct" "$P_NOBOLD" \
       "$(fmt_time "$five_reset")" "$P_RESET"
   fi
 
   if [[ -n "$week_pct" ]]; then
     local pct=${week_pct%.*}
-    printf '%s%b%b %s week %d%% →%s %b' \
+    printf '%s%b%b %s week %b%d%%%b →%s %b' \
       "$gap" \
       "$(pulse_tier_bg "$week_pct")" "$P_FG_DARK" \
-      "$(ctx_circle "$week_pct")" "$pct" \
+      "$(ctx_circle "$week_pct")" \
+      "$P_BOLD" "$pct" "$P_NOBOLD" \
       "$(fmt_when "$week_reset")" "$P_RESET"
   fi
 
@@ -296,10 +301,11 @@ render_pulse() {
     local pct=${ctx_pct%.*}
     local size_label=""
     [[ -n "$ctx_size" ]] && size_label=" / $(fmt_size "$ctx_size")"
-    printf '%s%b%b %s %d%%%s %b' \
+    printf '%s%b%b %s %b%d%%%b%s %b' \
       "$gap" \
       "$(pulse_tier_bg "$ctx_pct")" "$P_FG_DARK" \
-      "$(ctx_circle "$ctx_pct")" "$pct" \
+      "$(ctx_circle "$ctx_pct")" \
+      "$P_BOLD" "$pct" "$P_NOBOLD" \
       "$size_label" "$P_RESET"
   fi
 }
