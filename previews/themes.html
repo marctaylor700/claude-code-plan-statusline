@@ -1,0 +1,713 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Statusline — themes</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..900,0..100&family=Geist:wght@300..700&family=JetBrains+Mono:wght@400..700&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    :root {
+      --bg: #15110a;
+      --bg-elev: #1c170e;
+      --bg-deep: #0d0a05;
+      --line: #2c2316;
+      --line-soft: #221a10;
+      --text: #f0e6cc;
+      --text-soft: #c8bda0;
+      --muted: #80755e;
+      --muted-deep: #57503e;
+      --amber: #e8a938;
+      --amber-soft: #c98e23;
+      --copper: #c77b3d;
+      --rust: #a04a26;
+      --green: #6db86b;
+      --gold: #d3b057;
+      --orange: #e88a3a;
+      --red: #d04a3a;
+
+      --serif: "Fraunces", "Iowan Old Style", Georgia, serif;
+      --sans: "Geist", -apple-system, BlinkMacSystemFont, sans-serif;
+      --mono: "JetBrains Mono", "SF Mono", Menlo, monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-weight: 400;
+      font-size: 17px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+      margin: 0;
+      padding: 0;
+      letter-spacing: -0.005em;
+    }
+
+    /* faint paper-grain overlay */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.92 0 0 0 0 0.78 0 0 0 0 0.5 0 0 0 0.06 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+      mix-blend-mode: overlay;
+      opacity: 0.6;
+    }
+
+    /* warm radial vignette */
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(232, 169, 56, 0.12), transparent 70%),
+        radial-gradient(ellipse 80% 60% at 50% 110%, rgba(199, 123, 61, 0.08), transparent 60%);
+    }
+
+    main {
+      position: relative;
+      z-index: 2;
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 6rem 2.5rem 8rem;
+    }
+
+    /* HEADER */
+
+    .eyebrow {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin: 0 0 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .eyebrow::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(to right, var(--line), transparent);
+    }
+
+    h1 {
+      font-family: var(--serif);
+      font-weight: 300;
+      font-style: italic;
+      font-size: clamp(2.6rem, 6.5vw, 5.4rem);
+      line-height: 0.95;
+      letter-spacing: -0.025em;
+      margin: 0 0 1.6rem;
+      color: var(--text);
+      max-width: 18ch;
+      font-variation-settings: "opsz" 144, "SOFT" 30;
+    }
+
+    h1 em {
+      font-style: italic;
+      color: var(--amber);
+      font-weight: 400;
+    }
+
+    .lede {
+      font-family: var(--sans);
+      font-size: 1.15rem;
+      line-height: 1.55;
+      color: var(--text-soft);
+      max-width: 56ch;
+      margin: 0 0 5rem;
+      font-weight: 350;
+    }
+
+    .lede a { color: var(--amber); text-decoration: underline; text-underline-offset: 3px; }
+
+    /* THEME CARDS */
+
+    .theme {
+      margin-bottom: 5rem;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 1.75rem;
+      animation: cardIn 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    }
+
+    .theme:nth-of-type(1) { animation-delay: 0.05s; }
+    .theme:nth-of-type(2) { animation-delay: 0.18s; }
+    .theme:nth-of-type(3) { animation-delay: 0.32s; }
+    .theme:nth-of-type(4) { animation-delay: 0.46s; }
+
+    @keyframes cardIn {
+      from {
+        opacity: 0;
+        transform: translateY(28px);
+      }
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    .theme-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 2rem;
+      flex-wrap: wrap;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--line-soft);
+    }
+
+    .theme-num {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      letter-spacing: 0.18em;
+      color: var(--muted);
+    }
+
+    .theme h2 {
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: clamp(2rem, 4vw, 3.1rem);
+      line-height: 1;
+      letter-spacing: -0.02em;
+      margin: 0.5rem 0 0;
+      color: var(--text);
+      font-variation-settings: "opsz" 144, "SOFT" 0;
+    }
+
+    .theme h2 .pin {
+      font-family: var(--sans);
+      font-size: 0.7rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--amber);
+      vertical-align: 0.4em;
+      margin-left: 0.6rem;
+      font-weight: 500;
+    }
+
+    .theme-meta {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    .theme-meta span { color: var(--text-soft); }
+
+    .theme-desc {
+      font-size: 1.04rem;
+      line-height: 1.6;
+      color: var(--text-soft);
+      margin: 0;
+      max-width: 64ch;
+      font-weight: 350;
+    }
+
+    /* MOCK TERMINAL */
+
+    .term {
+      background: var(--bg-deep);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow:
+        0 1px 0 rgba(255, 230, 200, 0.04) inset,
+        0 30px 60px -20px rgba(0, 0, 0, 0.8),
+        0 8px 16px -8px rgba(0, 0, 0, 0.6);
+      transition: box-shadow 0.5s ease, transform 0.5s ease;
+    }
+
+    .theme:hover .term {
+      box-shadow:
+        0 1px 0 rgba(255, 230, 200, 0.06) inset,
+        0 30px 60px -20px rgba(0, 0, 0, 0.85),
+        0 8px 16px -8px rgba(0, 0, 0, 0.7),
+        0 0 0 1px rgba(232, 169, 56, 0.12),
+        0 0 40px -8px rgba(232, 169, 56, 0.18);
+    }
+
+    .term-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.7rem 1rem;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(to bottom, #181308, #110d05);
+    }
+    .term-bar .dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: #2c2418;
+      border: 0.5px solid #1a1408;
+    }
+    .term-bar .dot:nth-child(1) { background: #4a2a26; }
+    .term-bar .dot:nth-child(2) { background: #4a3f1a; }
+    .term-bar .dot:nth-child(3) { background: #2a3a1f; }
+    .term-bar .label {
+      margin-left: 0.6rem;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--muted-deep);
+      letter-spacing: 0.05em;
+    }
+
+    .term-body {
+      padding: 1.25rem 1.5rem 1.25rem;
+      font-family: var(--mono);
+      font-size: 0.95rem;
+      line-height: 1.65;
+      color: #cfc7b3;
+      min-height: 9rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 1.4rem;
+    }
+
+    .term-line { white-space: nowrap; overflow-x: auto; }
+    .term-line::-webkit-scrollbar { display: none; }
+
+    .prompt {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    .prompt .arrow { color: var(--amber); }
+    .prompt .path { color: var(--text-soft); }
+    .prompt .text { color: var(--muted-deep); }
+
+    .statusline {
+      font-family: var(--mono);
+      font-size: 0.95rem;
+      white-space: nowrap;
+      overflow-x: auto;
+      padding-top: 0.4rem;
+      border-top: 1px dashed var(--line-soft);
+      margin-top: 0.4rem;
+    }
+    .statusline::-webkit-scrollbar { display: none; }
+
+    /* ===== Theme: default (today's look) ===== */
+
+    .statusline .d-bold { font-weight: 700; color: #ddd; }
+    .statusline .d-sep { color: #555; }
+    .statusline .d-green { color: #4ade80; }
+    .statusline .d-yellow { color: #fbbf24; }
+    .statusline .d-orange { color: #f97316; }
+    .statusline .d-red { color: #f87171; }
+    .statusline .d-default { color: #cfc7b3; }
+
+    /* ===== Theme: hearth (warm, restrained, animated) ===== */
+
+    .statusline .h-sparkle {
+      color: var(--amber);
+      display: inline-block;
+      font-weight: 500;
+    }
+    .statusline .h-model { color: #f5e9c8; font-weight: 600; letter-spacing: 0.01em; }
+    .statusline .h-shimmer-on {
+      color: #fff8e0;
+      text-shadow: 0 0 6px rgba(245, 230, 180, 0.6);
+      font-weight: 700;
+    }
+    .statusline .h-sep { color: #564b34; padding: 0 0.45em; }
+    .statusline .h-glyph { color: var(--amber); }
+    .statusline .h-num { color: #f5e9c8; }
+    .statusline .h-meta { color: #6e6248; font-style: italic; font-weight: 300; }
+    .statusline .h-warn { color: var(--orange); }
+    .statusline .h-urgent { color: var(--red); font-weight: 600; }
+
+    /* ===== Theme: pulse (colored pill segments) ===== */
+
+    .statusline .p-pill {
+      display: inline-block;
+      padding: 0.25em 0.75em;
+      margin-right: 0.55em;
+      border-radius: 999px;
+      color: #15110a;
+      font-weight: 500;
+      letter-spacing: 0.005em;
+    }
+    .statusline .p-pill:last-child { margin-right: 0; }
+    .statusline .p-pill.amber { background: linear-gradient(135deg, #f5b94a, #d99325); }
+    .statusline .p-pill.green { background: linear-gradient(135deg, #92e08e, #5da559); }
+    .statusline .p-pill.gold { background: linear-gradient(135deg, #ecd072, #b6913a); color: #0c0a06; }
+    .statusline .p-pill.orange { background: linear-gradient(135deg, #f5a256, #cc6c1e); color: #1a0d05; }
+    .statusline .p-pill.red { background: linear-gradient(135deg, #f07d6a, #b53224); color: #f7e6e0; font-weight: 600; }
+    .statusline .p-glyph { opacity: 0.7; margin-right: 0.25em; }
+    .statusline .p-meta { opacity: 0.65; margin-left: 0.4em; font-size: 0.85em; font-style: italic; }
+    .statusline .p-num { font-weight: 700; }
+
+    /* ===== Theme: glow (neon-style, glowing text on dark) ===== */
+
+    .statusline .g-base { color: var(--text); }
+    .statusline .g-sep {
+      color: var(--copper);
+      padding: 0 0.55em;
+      opacity: 0.75;
+    }
+    .statusline .g-sparkle {
+      color: var(--amber);
+      text-shadow: 0 0 6px rgba(232, 169, 56, 0.7), 0 0 14px rgba(232, 169, 56, 0.45);
+      font-weight: 500;
+    }
+    .statusline .g-model {
+      color: #fff5d8;
+      text-shadow: 0 0 6px rgba(245, 230, 180, 0.4);
+      font-weight: 600;
+    }
+    .statusline .g-glow-green {
+      color: #6df48e;
+      text-shadow: 0 0 6px rgba(70, 230, 110, 0.55), 0 0 14px rgba(70, 230, 110, 0.3);
+    }
+    .statusline .g-glow-gold {
+      color: #f0d268;
+      text-shadow: 0 0 6px rgba(240, 200, 80, 0.55), 0 0 14px rgba(240, 200, 80, 0.3);
+    }
+    .statusline .g-glow-orange {
+      color: #ffa860;
+      text-shadow: 0 0 6px rgba(255, 130, 50, 0.6), 0 0 14px rgba(255, 130, 50, 0.35);
+    }
+    .statusline .g-glow-red {
+      color: #ff7a6a;
+      text-shadow: 0 0 6px rgba(255, 80, 70, 0.65), 0 0 16px rgba(255, 80, 70, 0.4);
+      font-weight: 600;
+    }
+    .statusline .g-meta {
+      color: var(--muted);
+      font-style: italic;
+      opacity: 0.85;
+    }
+
+    @keyframes glowPulse {
+      0%, 100% { filter: brightness(1) drop-shadow(0 0 0 transparent); }
+      50% { filter: brightness(1.18); }
+    }
+    [data-theme="glow"] .statusline { animation: glowPulse 4s ease-in-out infinite; }
+
+    /* FOOTER */
+
+    .foot {
+      margin-top: 6rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--line-soft);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 2rem;
+      align-items: end;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    .foot p { margin: 0 0 0.6rem; max-width: 60ch; }
+    .foot .sig {
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 1.4rem;
+      color: var(--text-soft);
+    }
+
+    @media (max-width: 720px) {
+      main { padding: 4rem 1.4rem 5rem; }
+      .theme-head { flex-direction: column; align-items: flex-start; gap: 0.4rem; }
+      .theme-meta { text-align: left; }
+      .term-body { padding: 1rem 1rem; font-size: 0.85rem; }
+      .statusline { font-size: 0.85rem; }
+      .statusline .p-pill { padding: 0.2em 0.55em; margin-right: 0.4em; font-size: 0.85rem; }
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <p class="eyebrow">Statusline · 4 themes · live preview</p>
+    <h1>Four ways the bottom of your terminal could <em>feel</em>.</h1>
+    <p class="lede">
+      Same data — your Claude plan's 5-hour and weekly rate-limit windows, and the
+      current chat's context-window fill. Four different visual languages for it.
+      Each theme below is rendering live: percentages cycle through every tier, and
+      animated elements update in real time. Pick one — or tell me what's missing.
+    </p>
+
+    <!-- Theme 1: default -->
+    <article class="theme" data-theme="default">
+      <header class="theme-head">
+        <div>
+          <p class="theme-num">01 / today</p>
+          <h2>Default</h2>
+        </div>
+        <div class="theme-meta">basic ANSI · <span>green → red ramp</span></div>
+      </header>
+      <p class="theme-desc">
+        The look that ships today. Bold model name, pipe separators, a four-color
+        threshold ramp (green → yellow → orange → red), and a single fill-circle
+        on the context segment. No animation, no decoration — purely functional.
+      </p>
+      <div class="term">
+        <div class="term-bar">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span class="label">claude-code · zsh</span>
+        </div>
+        <div class="term-body">
+          <div class="prompt"><span class="arrow">›</span> <span class="path">~/p/cc-statusline</span> <span class="text">claude code is thinking…</span></div>
+          <div class="statusline" data-render="default"></div>
+        </div>
+      </div>
+    </article>
+
+    <!-- Theme 2: hearth -->
+    <article class="theme" data-theme="hearth">
+      <header class="theme-head">
+        <div>
+          <p class="theme-num">02 / restrained</p>
+          <h2>Hearth <span class="pin">animated</span></h2>
+        </div>
+        <div class="theme-meta">warm amber · <span>shimmer + sparkle</span></div>
+      </header>
+      <p class="theme-desc">
+        Anthropic-warm. A pulsing sparkle prefixes the model name (cycles
+        <code style="font-family:var(--mono);font-size:0.92em">·&nbsp;✦&nbsp;✶&nbsp;✦</code>
+        — small to big to small). A "shimmer" glides one bright character across
+        the model name with each refresh. Reset times sit dim and italic; the
+        threshold ramp stays subtle until the urgent tier punches red.
+      </p>
+      <div class="term">
+        <div class="term-bar">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span class="label">claude-code · zsh</span>
+        </div>
+        <div class="term-body">
+          <div class="prompt"><span class="arrow">›</span> <span class="path">~/p/cc-statusline</span> <span class="text">claude code is thinking…</span></div>
+          <div class="statusline" data-render="hearth"></div>
+        </div>
+      </div>
+    </article>
+
+    <!-- Theme 3: pulse -->
+    <article class="theme" data-theme="pulse">
+      <header class="theme-head">
+        <div>
+          <p class="theme-num">03 / bold</p>
+          <h2>Pulse <span class="pin">animated</span></h2>
+        </div>
+        <div class="theme-meta">colored pills · <span>tier as background</span></div>
+      </header>
+      <p class="theme-desc">
+        Every segment becomes a rounded, colored pill — Powerline-style — with
+        dark text on a saturated background. The amber pill is permanent (model);
+        the three usage pills shift color as their tier crosses thresholds, so a
+        hot week is visible as <em>shape</em>, not just digits. Subtle gradient
+        on each pill gives them dimension.
+      </p>
+      <div class="term">
+        <div class="term-bar">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span class="label">claude-code · zsh</span>
+        </div>
+        <div class="term-body">
+          <div class="prompt"><span class="arrow">›</span> <span class="path">~/p/cc-statusline</span> <span class="text">claude code is thinking…</span></div>
+          <div class="statusline" data-render="pulse"></div>
+        </div>
+      </div>
+    </article>
+
+    <!-- Theme 4: glow -->
+    <article class="theme" data-theme="glow">
+      <header class="theme-head">
+        <div>
+          <p class="theme-num">04 / maximal</p>
+          <h2>Glow <span class="pin">animated</span></h2>
+        </div>
+        <div class="theme-meta">neon · <span>text-shadow halos</span></div>
+      </header>
+      <p class="theme-desc">
+        Every segment radiates. Tier color is in the glow halo, not the text body —
+        so the line stays readable but each percentage has weight. The whole
+        statusline breathes with a slow brightness pulse. Loud, but disciplined.
+      </p>
+      <div class="term">
+        <div class="term-bar">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span class="label">claude-code · zsh</span>
+        </div>
+        <div class="term-body">
+          <div class="prompt"><span class="arrow">›</span> <span class="path">~/p/cc-statusline</span> <span class="text">claude code is thinking…</span></div>
+          <div class="statusline" data-render="glow"></div>
+        </div>
+      </div>
+    </article>
+
+    <footer class="foot">
+      <div>
+        <p>
+          Each theme above is rendering live in your browser — same renderer logic
+          we'd ship in <code style="font-family:var(--mono);font-size:0.9em">statusline.sh</code>,
+          translated to CSS so you can actually see it. Percentages cycle slowly
+          through low → high so you can see how each theme handles every tier.
+        </p>
+        <p>
+          Pick one. Or describe what's still wrong.
+        </p>
+      </div>
+      <div class="sig">— a draft</div>
+    </footer>
+  </main>
+
+  <script>
+    // ─── Mock data: percentages cycle slowly so every tier is visible ───────
+    function dataAt(now) {
+      // 24-second cycle, sawtooth from 0 → 100
+      const period = 24000;
+      const t = (now % period) / period; // 0..1
+      const pct5 = Math.round(t * 100);
+      const pctW = Math.round(((t + 0.33) % 1) * 100);
+      const pctC = Math.round(((t + 0.66) % 1) * 100);
+      return { model: "Opus 4.7", pct5, pctW, pctC };
+    }
+
+    function tier(p) {
+      if (p >= 90) return 3;
+      if (p >= 70) return 2;
+      if (p >= 50) return 1;
+      return 0;
+    }
+
+    function circleGlyph(p) {
+      if (p >= 88) return "●";
+      if (p >= 63) return "◕";
+      if (p >= 38) return "◑";
+      if (p >= 13) return "◔";
+      return "○";
+    }
+
+    // ─── Sparkle frames ─────────────────────────────────────────────────────
+    const SPARKS_PULSE = ["·", "✦", "✶", "✦"];
+
+    function pulseSparkle(now) {
+      // change every 700ms so you actually see motion at this preview cadence
+      const idx = Math.floor(now / 700) % SPARKS_PULSE.length;
+      return SPARKS_PULSE[idx];
+    }
+
+    function fmtTime(p) {
+      // fake — pretend 5h reset is later today
+      return p < 50 ? "6pm" : p < 80 ? "10pm" : "tomorrow";
+    }
+
+    function fmtDay(p) {
+      const days = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+      return days[Math.floor(p / 14) % 7];
+    }
+
+    // ─── Theme renderers (each returns HTML for one statusline) ─────────────
+
+    const RENDERERS = {
+      default(d) {
+        const cls = (p) => ["d-green", "d-yellow", "d-orange", "d-red"][tier(p)];
+        return [
+          `<span class="d-bold">${d.model}</span>`,
+          `<span class="d-sep"> │ </span>`,
+          `<span class="${cls(d.pct5)}">5h: ${d.pct5}%</span> (→${fmtTime(d.pct5)})`,
+          `<span class="d-sep"> │ </span>`,
+          `<span class="${cls(d.pctW)}">week: ${d.pctW}%</span> (→${fmtDay(d.pctW)})`,
+          `<span class="d-sep"> │ </span>`,
+          `<span class="${cls(d.pctC)}">${circleGlyph(d.pctC)} ${d.pctC}%</span> of 1M`,
+        ].join("");
+      },
+
+      hearth(d, now) {
+        const sparkle = pulseSparkle(now);
+
+        // Shimmer: one character of the model name highlighted, position rotates
+        const shimmerPos = Math.floor(now / 600) % d.model.length;
+        const shimmered = [...d.model]
+          .map((c, i) =>
+            i === shimmerPos
+              ? `<span class="h-shimmer-on">${c}</span>`
+              : c === " "
+              ? c
+              : `<span class="h-model">${c}</span>`
+          )
+          .join("");
+
+        const tierClass = (p) =>
+          p >= 90 ? "h-urgent" : p >= 70 ? "h-warn" : "h-num";
+
+        return [
+          `<span class="h-sparkle">${sparkle}</span> ${shimmered}`,
+          `<span class="h-sep">·</span>`,
+          `<span class="h-glyph">${circleGlyph(d.pct5)}</span> 5h <span class="${tierClass(d.pct5)}">${d.pct5}%</span> <span class="h-meta">(→${fmtTime(d.pct5)})</span>`,
+          `<span class="h-sep">·</span>`,
+          `<span class="h-glyph">${circleGlyph(d.pctW)}</span> week <span class="${tierClass(d.pctW)}">${d.pctW}%</span> <span class="h-meta">(→${fmtDay(d.pctW)})</span>`,
+          `<span class="h-sep">·</span>`,
+          `<span class="h-glyph">${circleGlyph(d.pctC)}</span> <span class="${tierClass(d.pctC)}">${d.pctC}%</span> <span class="h-meta">of 1M</span>`,
+        ].join(" ");
+      },
+
+      pulse(d, now) {
+        const sparkle = pulseSparkle(now);
+        const pillClass = (p) => ["green", "gold", "orange", "red"][tier(p)];
+
+        return [
+          `<span class="p-pill amber"><span class="p-glyph">${sparkle}</span><b>${d.model}</b></span>`,
+          `<span class="p-pill ${pillClass(d.pct5)}"><span class="p-glyph">${circleGlyph(d.pct5)}</span>5h <span class="p-num">${d.pct5}%</span><span class="p-meta">→${fmtTime(d.pct5)}</span></span>`,
+          `<span class="p-pill ${pillClass(d.pctW)}"><span class="p-glyph">${circleGlyph(d.pctW)}</span>week <span class="p-num">${d.pctW}%</span><span class="p-meta">→${fmtDay(d.pctW)}</span></span>`,
+          `<span class="p-pill ${pillClass(d.pctC)}"><span class="p-glyph">${circleGlyph(d.pctC)}</span><span class="p-num">${d.pctC}%</span><span class="p-meta">/ 1M</span></span>`,
+        ].join("");
+      },
+
+      glow(d, now) {
+        const sparkle = pulseSparkle(now);
+        const glowCls = (p) =>
+          ["g-glow-green", "g-glow-gold", "g-glow-orange", "g-glow-red"][tier(p)];
+
+        return [
+          `<span class="g-sparkle">${sparkle}</span> <span class="g-model">${d.model}</span>`,
+          `<span class="g-sep">·</span>`,
+          `<span class="${glowCls(d.pct5)}">${circleGlyph(d.pct5)} 5h ${d.pct5}%</span> <span class="g-meta">→${fmtTime(d.pct5)}</span>`,
+          `<span class="g-sep">·</span>`,
+          `<span class="${glowCls(d.pctW)}">${circleGlyph(d.pctW)} week ${d.pctW}%</span> <span class="g-meta">→${fmtDay(d.pctW)}</span>`,
+          `<span class="g-sep">·</span>`,
+          `<span class="${glowCls(d.pctC)}">${circleGlyph(d.pctC)} ${d.pctC}%</span> <span class="g-meta">/ 1M</span>`,
+        ].join(" ");
+      },
+    };
+
+    // ─── Animation loop ─────────────────────────────────────────────────────
+
+    const targets = document.querySelectorAll(".statusline[data-render]");
+
+    function tick() {
+      const now = performance.now();
+      const d = dataAt(now);
+      for (const el of targets) {
+        const renderer = RENDERERS[el.dataset.render];
+        if (renderer) el.innerHTML = renderer(d, now);
+      }
+    }
+
+    function loop() {
+      tick();
+      requestAnimationFrame(loop);
+    }
+    loop();
+  </script>
+</body>
+</html>

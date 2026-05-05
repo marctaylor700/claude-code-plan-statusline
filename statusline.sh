@@ -3,20 +3,22 @@
 # Reads Claude Code's statusline JSON from stdin — no network, no auth, just jq.
 # Requires Claude Code v2.1.80+ (when rate_limits was added to statusline stdin).
 #
-# Theme selection: ~/.claude/plan-statusline.conf, e.g.:
-#   theme=claude   # progress bars, animated sparkle, warm palette
-#   theme=default  # today's look (default if file missing)
+# Themes: select via ~/.claude/plan-statusline.conf, e.g.:
+#   theme=default   # today's look (the safe one)
+#   theme=hearth    # warm amber, pulsing sparkle, model-name shimmer
+#   theme=pulse     # colored "pill" segments, tier as background
+#   theme=glow      # bold bright neon-style, animated sparkle
+# Missing or invalid theme → default.
 
 set -uo pipefail
 
 input=$(cat)
 
-# --- Config: read theme from ~/.claude/plan-statusline.conf if present ---
+# --- Config: read theme name from ~/.claude/plan-statusline.conf if present ---
 theme=default
 config_file="${HOME}/.claude/plan-statusline.conf"
 if [[ -f "$config_file" ]]; then
   while IFS='=' read -r key value; do
-    # strip surrounding whitespace and quotes
     key=${key// /}
     value=${value// /}
     value=${value%\"}; value=${value#\"}
@@ -39,7 +41,9 @@ IFS=$'\t' read -r model five_pct five_reset week_pct week_reset ctx_pct ctx_size
   ] | @tsv'
 )
 
-# --- Shared helpers (used by all themes) ---
+# ============================================================================
+# Shared helpers (used by every theme)
+# ============================================================================
 
 reset_color() { printf '\033[0m'; }
 
@@ -74,6 +78,26 @@ fmt_when() {
   fi
 }
 
+# Five-step fill circle, used by every theme.
+ctx_circle() {
+  local pct=${1%.*}
+  [[ -z "$pct" ]] && return
+  if   ((pct >= 88)); then printf '●'
+  elif ((pct >= 63)); then printf '◕'
+  elif ((pct >= 38)); then printf '◑'
+  elif ((pct >= 13)); then printf '◔'
+  else                     printf '○'
+  fi
+}
+
+# Sparkle frames pulse small ↔ large so the change between renders is dramatic
+# (a dot turning into a star is unmistakable, even at slow refresh cadence).
+SPARKLES=('·' '✦' '✶' '✦')
+sparkle_now() {
+  local frame=$(( $(date +%s) % ${#SPARKLES[@]} ))
+  printf '%s' "${SPARKLES[$frame]}"
+}
+
 # ============================================================================
 # Theme: default — today's look (preserved exactly)
 # ============================================================================
@@ -85,17 +109,6 @@ default_color() {
   elif ((pct >= 70)); then printf '\033[38;5;208m'
   elif ((pct >= 50)); then printf '\033[33m'
   else                     printf '\033[32m'
-  fi
-}
-
-default_circle() {
-  local pct=${1%.*}
-  [[ -z "$pct" ]] && return
-  if   ((pct >= 88)); then printf '●'
-  elif ((pct >= 63)); then printf '◕'
-  elif ((pct >= 38)); then printf '◑'
-  elif ((pct >= 13)); then printf '◔'
-  else                     printf '○'
   fi
 }
 
@@ -117,7 +130,7 @@ render_default() {
     local pct=${ctx_pct%.*}
     local size_label=""
     [[ -n "$ctx_size" ]] && size_label=" of $(fmt_size "$ctx_size")"
-    segments+=("$(default_color "$ctx_pct")$(default_circle "$ctx_pct") ${pct}%${size_label}$(reset_color)")
+    segments+=("$(default_color "$ctx_pct")$(ctx_circle "$ctx_pct") ${pct}%${size_label}$(reset_color)")
   fi
 
   if [[ -z "$ctx_pct" && -z "$five_pct" && -z "$week_pct" ]]; then
@@ -135,96 +148,227 @@ render_default() {
 }
 
 # ============================================================================
-# Theme: claude — Powerline-style colored "pills"
-# Each segment is a colored background block with bright-white text on top.
-# Tier shows in the bg color of each percentage pill (calm green → urgent red).
-# Animated sparkle prefixes the model pill and twinkles between renders.
+# Theme: hearth — restrained warm
+#   • pulsing sparkle (· ↔ ✶) prefixes the model name
+#   • shimmer: one character of the model name is bolded per render, position
+#     rotates per second so the bright char "drifts" across the name
+#   • amber glyphs, dim italic reset times
+#   • tier color only kicks in for warn (orange) and urgent (bold red)
 # ============================================================================
 
-# Background colors (256-color)
-CL_BG_AMBER='\033[48;5;94m'    # dark amber for the model pill
-CL_BG_GREEN='\033[48;5;22m'    # calm: dark green
-CL_BG_OLIVE='\033[48;5;100m'   # warning: olive
-CL_BG_ORANGE='\033[48;5;166m'  # hot: orange
-CL_BG_RED='\033[48;5;88m'      # urgent: dark red
+H_AMBER='\033[38;5;214m'      # warm amber
+H_CREAM='\033[38;5;230m'      # cream/off-white
+H_DIM='\033[2;38;5;241m'      # dim warm grey
+H_DIM_IT='\033[2;3;38;5;241m' # dim italic
+H_ORANGE='\033[38;5;208m'     # warning
+H_RED='\033[1;38;5;196m'      # bold red, urgent
+H_BOLD='\033[1m'
+H_NOBOLD='\033[22m'
+H_RESET='\033[0m'
 
-CL_FG_WHITE='\033[97m'         # bright white text
-CL_BOLD='\033[1m'
-CL_RESET='\033[0m'
-
-# Sparkle frames: cycled by current epoch second so the leading char "twinkles"
-# between renders. Six frames; one rotates per second of wall-clock time.
-CL_SPARKLES=('✶' '✷' '✸' '✳' '✴' '✻')
-
-claude_sparkle() {
-  local frame=$(( $(date +%s) % ${#CL_SPARKLES[@]} ))
-  printf '%s' "${CL_SPARKLES[$frame]}"
-}
-
-# Tier background for a percentage pill.
-claude_tier_bg() {
+hearth_tier_fg() {
   local pct=${1%.*}
-  [[ -z "$pct" ]] && return
-  if   ((pct >= 90)); then printf '%b' "$CL_BG_RED"
-  elif ((pct >= 70)); then printf '%b' "$CL_BG_ORANGE"
-  elif ((pct >= 50)); then printf '%b' "$CL_BG_OLIVE"
-  else                     printf '%b' "$CL_BG_GREEN"
+  [[ -z "$pct" ]] && { printf '%b' "$H_CREAM"; return; }
+  if   ((pct >= 90)); then printf '%b' "$H_RED"
+  elif ((pct >= 70)); then printf '%b' "$H_ORANGE"
+  else                     printf '%b' "$H_CREAM"
   fi
 }
 
-# Five-step fill circle (drawn in white on the pill's bg).
-claude_circle() {
-  local pct=${1%.*}
-  [[ -z "$pct" ]] && return
-  if   ((pct >= 88)); then printf '●'
-  elif ((pct >= 63)); then printf '◕'
-  elif ((pct >= 38)); then printf '◑'
-  elif ((pct >= 13)); then printf '◔'
-  else                     printf '○'
-  fi
+# Render TEXT with one character bolded; the bold position rotates per second
+# so a "shimmer" appears to drift across the text between renders.
+hearth_shimmer() {
+  local text=$1
+  local n=${#text}
+  (( n == 0 )) && { printf '%s' "$text"; return; }
+  local pos=$(( $(date +%s) % n ))
+  local i char
+  printf '%b' "$H_CREAM"
+  for ((i=0; i<n; i++)); do
+    char="${text:i:1}"
+    if (( i == pos )); then
+      printf '%b%s%b' "$H_BOLD" "$char" "$H_NOBOLD"
+    else
+      printf '%s' "$char"
+    fi
+  done
+  printf '%b' "$H_RESET"
 }
 
-render_claude() {
+render_hearth() {
   if [[ -z "$ctx_pct" && -z "$five_pct" && -z "$week_pct" ]]; then
-    printf '%b%b %s usage data pending - make a request %b' \
-      "$CL_BG_AMBER" "$CL_FG_WHITE" "$(claude_sparkle)" "$CL_RESET"
+    printf '%b%s%b %busage data pending - make a request%b' \
+      "$H_AMBER" "$(sparkle_now)" "$H_RESET" "$H_DIM_IT" "$H_RESET"
     return
   fi
 
-  local gap="  "  # space between pills (renders in default bg)
+  local sep
+  sep=$(printf '%b · %b' "$H_DIM" "$H_RESET")
 
-  # Model pill: amber bg, bold white text, animated sparkle prefix.
-  printf '%b%b %s %b%s %b' \
-    "$CL_BG_AMBER" "$CL_FG_WHITE" "$(claude_sparkle)" \
-    "$CL_BOLD" "$model" "$CL_RESET"
+  printf '%b%s%b %s' "$H_AMBER" "$(sparkle_now)" "$H_RESET" "$(hearth_shimmer "$model")"
+
+  if [[ -n "$five_pct" ]]; then
+    local pct=${five_pct%.*}
+    printf '%b' "$sep"
+    printf '%b%s%b 5h %b%d%%%b %b(→%s)%b' \
+      "$H_AMBER" "$(ctx_circle "$five_pct")" "$H_RESET" \
+      "$(hearth_tier_fg "$five_pct")" "$pct" "$H_RESET" \
+      "$H_DIM_IT" "$(fmt_time "$five_reset")" "$H_RESET"
+  fi
+
+  if [[ -n "$week_pct" ]]; then
+    local pct=${week_pct%.*}
+    printf '%b' "$sep"
+    printf '%b%s%b week %b%d%%%b %b(→%s)%b' \
+      "$H_AMBER" "$(ctx_circle "$week_pct")" "$H_RESET" \
+      "$(hearth_tier_fg "$week_pct")" "$pct" "$H_RESET" \
+      "$H_DIM_IT" "$(fmt_when "$week_reset")" "$H_RESET"
+  fi
+
+  if [[ -n "$ctx_pct" ]]; then
+    local pct=${ctx_pct%.*}
+    local size_label=""
+    [[ -n "$ctx_size" ]] && size_label=" of $(fmt_size "$ctx_size")"
+    printf '%b' "$sep"
+    printf '%b%s%b %b%d%%%b%b%s%b' \
+      "$H_AMBER" "$(ctx_circle "$ctx_pct")" "$H_RESET" \
+      "$(hearth_tier_fg "$ctx_pct")" "$pct" "$H_RESET" \
+      "$H_DIM_IT" "$size_label" "$H_RESET"
+  fi
+}
+
+# ============================================================================
+# Theme: pulse — colored pills (Powerline-style)
+#   • each segment is a rounded background-colored block with dark text
+#   • amber pill for the model; tier-colored pills for usage segments
+#   • animated sparkle inside the model pill
+# ============================================================================
+
+P_BG_AMBER='\033[48;5;208m'   # vivid amber/orange
+P_BG_GREEN='\033[48;5;34m'    # calm: green
+P_BG_GOLD='\033[48;5;178m'    # warning: gold
+P_BG_ORANGE='\033[48;5;202m'  # hot: bright orange
+P_BG_RED='\033[48;5;196m'     # urgent: vivid red
+P_FG_DARK='\033[38;5;232m'    # near-black text on bright bg
+P_RESET='\033[0m'
+
+pulse_tier_bg() {
+  local pct=${1%.*}
+  [[ -z "$pct" ]] && return
+  if   ((pct >= 90)); then printf '%b' "$P_BG_RED"
+  elif ((pct >= 70)); then printf '%b' "$P_BG_ORANGE"
+  elif ((pct >= 50)); then printf '%b' "$P_BG_GOLD"
+  else                     printf '%b' "$P_BG_GREEN"
+  fi
+}
+
+render_pulse() {
+  if [[ -z "$ctx_pct" && -z "$five_pct" && -z "$week_pct" ]]; then
+    printf '%b%b %s usage data pending - make a request %b' \
+      "$P_BG_AMBER" "$P_FG_DARK" "$(sparkle_now)" "$P_RESET"
+    return
+  fi
+
+  local gap=" "
+
+  printf '%b%b %s %s %b' \
+    "$P_BG_AMBER" "$P_FG_DARK" "$(sparkle_now)" "$model" "$P_RESET"
 
   if [[ -n "$five_pct" ]]; then
     local pct=${five_pct%.*}
     printf '%s%b%b %s 5h %d%% →%s %b' \
       "$gap" \
-      "$(claude_tier_bg "$five_pct")" "$CL_FG_WHITE" \
-      "$(claude_circle "$five_pct")" "$pct" \
-      "$(fmt_time "$five_reset")" "$CL_RESET"
+      "$(pulse_tier_bg "$five_pct")" "$P_FG_DARK" \
+      "$(ctx_circle "$five_pct")" "$pct" \
+      "$(fmt_time "$five_reset")" "$P_RESET"
   fi
 
   if [[ -n "$week_pct" ]]; then
     local pct=${week_pct%.*}
     printf '%s%b%b %s week %d%% →%s %b' \
       "$gap" \
-      "$(claude_tier_bg "$week_pct")" "$CL_FG_WHITE" \
-      "$(claude_circle "$week_pct")" "$pct" \
-      "$(fmt_when "$week_reset")" "$CL_RESET"
+      "$(pulse_tier_bg "$week_pct")" "$P_FG_DARK" \
+      "$(ctx_circle "$week_pct")" "$pct" \
+      "$(fmt_when "$week_reset")" "$P_RESET"
   fi
 
   if [[ -n "$ctx_pct" ]]; then
     local pct=${ctx_pct%.*}
     local size_label=""
     [[ -n "$ctx_size" ]] && size_label=" / $(fmt_size "$ctx_size")"
-    printf '%s%b%b %s ctx %d%%%s %b' \
+    printf '%s%b%b %s %d%%%s %b' \
       "$gap" \
-      "$(claude_tier_bg "$ctx_pct")" "$CL_FG_WHITE" \
-      "$(claude_circle "$ctx_pct")" "$pct" \
-      "$size_label" "$CL_RESET"
+      "$(pulse_tier_bg "$ctx_pct")" "$P_FG_DARK" \
+      "$(ctx_circle "$ctx_pct")" "$pct" \
+      "$size_label" "$P_RESET"
+  fi
+}
+
+# ============================================================================
+# Theme: glow — bold bright neon-style
+#   • terminals can't actually render text-shadow halos, so we approximate
+#     "glow" via bold weight + the brightest 256-color values in each tier
+#   • animated sparkle, dim italic metadata, dim middle-dot separators
+# ============================================================================
+
+G_AMBER='\033[1;38;5;214m'    # bold amber
+G_MODEL='\033[1;38;5;230m'    # bold cream
+G_GREEN='\033[1;38;5;46m'     # bold pure green
+G_GOLD='\033[1;38;5;226m'     # bold yellow
+G_ORANGE='\033[1;38;5;208m'   # bold orange
+G_RED='\033[1;38;5;196m'      # bold red
+G_DIM='\033[2;38;5;241m'
+G_DIM_IT='\033[2;3;38;5;241m'
+G_RESET='\033[0m'
+
+glow_tier_fg() {
+  local pct=${1%.*}
+  [[ -z "$pct" ]] && { printf '%b' "$G_GREEN"; return; }
+  if   ((pct >= 90)); then printf '%b' "$G_RED"
+  elif ((pct >= 70)); then printf '%b' "$G_ORANGE"
+  elif ((pct >= 50)); then printf '%b' "$G_GOLD"
+  else                     printf '%b' "$G_GREEN"
+  fi
+}
+
+render_glow() {
+  if [[ -z "$ctx_pct" && -z "$five_pct" && -z "$week_pct" ]]; then
+    printf '%b%s%b %busage data pending - make a request%b' \
+      "$G_AMBER" "$(sparkle_now)" "$G_RESET" "$G_DIM_IT" "$G_RESET"
+    return
+  fi
+
+  local sep
+  sep=$(printf '%b · %b' "$G_DIM" "$G_RESET")
+
+  printf '%b%s%b %b%s%b' \
+    "$G_AMBER" "$(sparkle_now)" "$G_RESET" \
+    "$G_MODEL" "$model" "$G_RESET"
+
+  if [[ -n "$five_pct" ]]; then
+    local pct=${five_pct%.*}
+    printf '%b' "$sep"
+    printf '%b%s 5h %d%%%b %b(→%s)%b' \
+      "$(glow_tier_fg "$five_pct")" "$(ctx_circle "$five_pct")" "$pct" "$G_RESET" \
+      "$G_DIM_IT" "$(fmt_time "$five_reset")" "$G_RESET"
+  fi
+
+  if [[ -n "$week_pct" ]]; then
+    local pct=${week_pct%.*}
+    printf '%b' "$sep"
+    printf '%b%s week %d%%%b %b(→%s)%b' \
+      "$(glow_tier_fg "$week_pct")" "$(ctx_circle "$week_pct")" "$pct" "$G_RESET" \
+      "$G_DIM_IT" "$(fmt_when "$week_reset")" "$G_RESET"
+  fi
+
+  if [[ -n "$ctx_pct" ]]; then
+    local pct=${ctx_pct%.*}
+    local size_label=""
+    [[ -n "$ctx_size" ]] && size_label=" of $(fmt_size "$ctx_size")"
+    printf '%b' "$sep"
+    printf '%b%s %d%%%b%b%s%b' \
+      "$(glow_tier_fg "$ctx_pct")" "$(ctx_circle "$ctx_pct")" "$pct" "$G_RESET" \
+      "$G_DIM_IT" "$size_label" "$G_RESET"
   fi
 }
 
@@ -233,6 +377,8 @@ render_claude() {
 # ============================================================================
 
 case "$theme" in
-  claude)         render_claude ;;
+  hearth)         render_hearth ;;
+  pulse)          render_pulse ;;
+  glow)           render_glow ;;
   default|*)      render_default ;;
 esac
