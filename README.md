@@ -45,6 +45,26 @@ The `rate_limits` field only appears for Pro/Max subscribers, and only after the
 
 ## Install
 
+### Easiest: let Claude Code install it for you
+
+Open any Claude Code session and paste this prompt:
+
+```
+Please install the plan-statusline from https://github.com/blazemalan/claude-code-plan-statusline for me. Specifically:
+
+1. Download https://raw.githubusercontent.com/blazemalan/claude-code-plan-statusline/main/statusline.sh to ~/.claude/hooks/plan-statusline.sh and make it executable.
+2. Add a "statusLine" entry to ~/.claude/settings.json so it runs `bash ~/.claude/hooks/plan-statusline.sh`. Preserve all existing keys in that file.
+3. Make sure jq is installed (brew install jq if it isn't).
+
+When you're done, tell me to start a new Claude Code session and make a request so the bars appear.
+```
+
+That's it. Claude Code will do the file work and the settings edit, ask for permission as it goes, and tell you when it's ready.
+
+### Manual install
+
+If you'd rather do it yourself:
+
 ```bash
 mkdir -p ~/.claude/hooks
 curl -fsSL https://raw.githubusercontent.com/blazemalan/claude-code-plan-statusline/main/statusline.sh \
@@ -52,7 +72,7 @@ curl -fsSL https://raw.githubusercontent.com/blazemalan/claude-code-plan-statusl
 chmod +x ~/.claude/hooks/plan-statusline.sh
 ```
 
-Then add this to `~/.claude/settings.json`:
+Then add this to `~/.claude/settings.json` (merge with whatever's already there):
 
 ```json
 {
