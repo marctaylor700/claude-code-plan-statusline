@@ -343,28 +343,27 @@
       font-style: italic;
     }
 
-    /* ===== Theme: pulse (256-color pill segments — flat, no gradient) =====
-       Colors mirror the bash 256-color values: 214 amber, 40 green, 220 gold,
-       208 orange, 196 red. Fg is 232 (near-black). No border-radius — terminals
-       can't render rounded corners; pills are rectangular blocks. */
+    /* ===== Theme: pulse — colored pills with bg-fill encoding %  =====
+       Each pill's bg splits at the percentage threshold. Filled portion uses
+       the bright tier color with dark text; empty portion uses a dim shade of
+       the same color with light text. The pill IS the progress bar. Mirrors
+       the bash 256-color values exactly. */
 
     .statusline .p-pill {
       display: inline-block;
-      padding: 0.15em 0.7em;
       margin-right: 0.45em;
-      color: #1a1208;
-      font-weight: 500;
       letter-spacing: 0.005em;
+      white-space: pre;  /* preserve the leading/trailing space padding */
     }
     .statusline .p-pill:last-child { margin-right: 0; }
-    .statusline .p-pill.amber { background: #ffaf00; }   /* 256-214 */
-    .statusline .p-pill.green { background: #00d700; }   /* 256-40 */
-    .statusline .p-pill.gold { background: #ffd700; }    /* 256-220 */
-    .statusline .p-pill.orange { background: #ff8700; }  /* 256-208 */
-    .statusline .p-pill.red { background: #ff0000; }     /* 256-196 */
-    .statusline .p-glyph { margin-right: 0.3em; }
-    .statusline .p-meta { margin-left: 0.45em; font-size: 0.92em; }
-    .statusline .p-num { font-weight: 700; }
+    .statusline .p-pill .filled,
+    .statusline .p-pill .empty {
+      display: inline-block;
+      padding: 0.15em 0;
+    }
+    .statusline .p-pill .filled { color: #080808; }   /* 256-232 dark */
+    .statusline .p-pill .empty  { color: #eeeeee; }   /* 256-255 light */
+    .statusline .p-pill .filled b { font-weight: 700; }
 
     /* ===== Theme: glow (bold + bright tier colors, no halo)
        Terminals can't text-shadow. Glow's "neon" feel comes from bold weight
@@ -651,14 +650,39 @@
 
       pulse(d, now) {
         const sparkle = pulseSparkle(now);
-        const pillClass = (p) => ["green", "gold", "orange", "red"][tier(p)];
+
+        // 256-color hex equivalents (bright | dim) for each tier
+        const TIERS = [
+          ["#00d700", "#005f00"],  // calm   (40 / 22)
+          ["#ffd700", "#878700"],  // warn   (220 / 100)
+          ["#ff8700", "#af5f00"],  // hot    (208 / 130)
+          ["#ff0000", "#870000"],  // urgent (196 / 88)
+        ];
+        const escapeChar = (c) => c === "<" ? "&lt;" : c === ">" ? "&gt;" : c === "&" ? "&amp;" : c;
+
+        // Split a pill's text at the fill threshold; each half gets its own bg+fg.
+        const fillPill = (text, pct, tierPair) => {
+          const [bright, dim] = tierPair;
+          const total = [...text].length; // char count, multibyte-safe
+          const filled = Math.max(0, Math.min(total, Math.floor(pct * total / 100)));
+          const chars = [...text];
+          const left = chars.slice(0, filled).map(escapeChar).join("");
+          const right = chars.slice(filled).map(escapeChar).join("");
+          return `<span class="p-pill"><span class="filled" style="background:${bright}">${left}</span><span class="empty" style="background:${dim}">${right}</span></span>`;
+        };
+
+        // Model pill — solid amber, no fill split (model isn't a usage metric)
+        const modelPill =
+          `<span class="p-pill"><span class="filled" style="background:#ffaf00">` +
+          ` ${escapeChar(sparkle)} <b>${d.model}</b> ` +
+          `</span></span>`;
 
         return [
-          `<span class="p-pill amber"><span class="p-glyph">${sparkle}</span><b>${d.model}</b></span>`,
-          `<span class="p-pill ${pillClass(d.pct5)}"><span class="p-glyph">${circleGlyph(d.pct5)}</span>5h <span class="p-num">${d.pct5}%</span><span class="p-meta">→${fmtTime(d.pct5)}</span></span>`,
-          `<span class="p-pill ${pillClass(d.pctW)}"><span class="p-glyph">${circleGlyph(d.pctW)}</span>week <span class="p-num">${d.pctW}%</span><span class="p-meta">→${fmtDay(d.pctW)}</span></span>`,
-          `<span class="p-pill ${pillClass(d.pctC)}"><span class="p-glyph">${circleGlyph(d.pctC)}</span><span class="p-num">${d.pctC}%</span><span class="p-meta">/ 1M</span></span>`,
-        ].join("");
+          modelPill,
+          fillPill(` ${circleGlyph(d.pct5)} 5h ${d.pct5}% →${fmtTime(d.pct5)} `, d.pct5, TIERS[tier(d.pct5)]),
+          fillPill(` ${circleGlyph(d.pctW)} week ${d.pctW}% →${fmtDay(d.pctW)} `, d.pctW, TIERS[tier(d.pctW)]),
+          fillPill(` ${circleGlyph(d.pctC)} ${d.pctC}% / 1M `, d.pctC, TIERS[tier(d.pctC)]),
+        ].join(" ");
       },
 
       glow(d, now) {
