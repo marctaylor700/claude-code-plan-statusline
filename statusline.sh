@@ -2,11 +2,32 @@
 # Claude Code statusline that shows plan rate-limit usage (5-hour session + 7-day weekly).
 # Reads Claude Code's statusline JSON from stdin — no network, no auth, just jq.
 # Requires Claude Code v2.1.80+ (when rate_limits was added to statusline stdin).
+#
+# Themes: select via ~/.claude/plan-statusline.conf, e.g.:
+#   theme=default   # today's look (the safe one)
+#   theme=hearth    # warm amber, pulsing sparkle, model-name shimmer
+#   theme=glow      # bold bright neon-style, animated sparkle
+# Missing or invalid theme → default.
 
 set -uo pipefail
 
 input=$(cat)
 
+# --- Config: read theme name from ~/.claude/plan-statusline.conf if present ---
+theme=default
+config_file="${HOME}/.claude/plan-statusline.conf"
+if [[ -f "$config_file" ]]; then
+  while IFS='=' read -r key value; do
+    key=${key// /}
+    value=${value// /}
+    value=${value%\"}; value=${value#\"}
+    case "$key" in
+      theme) [[ -n "$value" ]] && theme="$value" ;;
+    esac
+  done < "$config_file"
+fi
+
+# --- Parse stdin JSON (one jq call into 7 vars via @tsv) ---
 IFS=$'\t' read -r model five_pct five_reset week_pct week_reset ctx_pct ctx_size < <(
   printf '%s' "$input" | jq -r '[
     .model.display_name // .model.id // "Claude",
@@ -19,16 +40,10 @@ IFS=$'\t' read -r model five_pct five_reset week_pct week_reset ctx_pct ctx_size
   ] | @tsv'
 )
 
-# Color thresholds: green <50, yellow >=50, orange >=70, red >=90
-colorize() {
-  local pct=${1%.*}
-  [[ -z "$pct" ]] && return
-  if   ((pct >= 90)); then printf '\033[31m'        # red
-  elif ((pct >= 70)); then printf '\033[38;5;208m'  # orange
-  elif ((pct >= 50)); then printf '\033[33m'        # yellow
-  else                     printf '\033[32m'        # green
-  fi
-}
+# ============================================================================
+# Shared helpers (used by every theme)
+# ============================================================================
+
 reset_color() { printf '\033[0m'; }
 
 # Format an epoch with a strftime string. BSD date (macOS) uses `-r`; GNU date (Linux/WSL) uses `-d @`.
@@ -43,7 +58,26 @@ fmt_time() {
   date_fmt "$epoch" "+%-I:%M%p" | tr '[:upper:]' '[:lower:]'
 }
 
-# Five-step Unicode circle that fills as percentage rises.
+fmt_size() {
+  local n=$1
+  [[ -z "$n" ]] && return
+  if   ((n >= 1000000)); then printf '%dM' $((n / 1000000))
+  elif ((n >= 1000));    then printf '%dk' $((n / 1000))
+  else                        printf '%d' "$n"
+  fi
+}
+
+fmt_when() {
+  local epoch=$1
+  [[ -z "$epoch" ]] && return
+  if [[ "$(date_fmt "$epoch" "+%Y-%m-%d")" == "$(date "+%Y-%m-%d")" ]]; then
+    fmt_time "$epoch"
+  else
+    date_fmt "$epoch" "+%a" | tr '[:upper:]' '[:lower:]'
+  fi
+}
+
+# Five-step fill circle, used by every theme.
 ctx_circle() {
   local pct=${1%.*}
   [[ -z "$pct" ]] && return
@@ -55,55 +89,242 @@ ctx_circle() {
   fi
 }
 
-# Compact size: 1000000 -> 1M, 200000 -> 200k.
-fmt_size() {
-  local n=$1
-  [[ -z "$n" ]] && return
-  if   ((n >= 1000000)); then printf '%dM' $((n / 1000000))
-  elif ((n >= 1000));    then printf '%dk' $((n / 1000))
-  else                        printf '%d' "$n"
+# Sparkle frames pulse small ↔ large so the change between renders is dramatic
+# (a dot turning into a star is unmistakable, even at slow refresh cadence).
+SPARKLES=('·' '✦' '✶' '✦')
+sparkle_now() {
+  local frame=$(( $(date +%s) % ${#SPARKLES[@]} ))
+  printf '%s' "${SPARKLES[$frame]}"
+}
+
+# ============================================================================
+# Theme: default — today's look (preserved exactly)
+# ============================================================================
+
+default_color() {
+  local pct=${1%.*}
+  [[ -z "$pct" ]] && return
+  if   ((pct >= 90)); then printf '\033[31m'
+  elif ((pct >= 70)); then printf '\033[38;5;208m'
+  elif ((pct >= 50)); then printf '\033[33m'
+  else                     printf '\033[32m'
   fi
 }
 
-# Show time if the reset is today, otherwise the lowercase weekday (e.g. "fri").
-fmt_when() {
-  local epoch=$1
-  [[ -z "$epoch" ]] && return
-  if [[ "$(date_fmt "$epoch" "+%Y-%m-%d")" == "$(date "+%Y-%m-%d")" ]]; then
-    fmt_time "$epoch"
-  else
-    date_fmt "$epoch" "+%a" | tr '[:upper:]' '[:lower:]'
+render_default() {
+  local segments=()
+  segments+=("$(printf '\033[1m%s\033[0m' "$model")")
+
+  if [[ -n "$five_pct" ]]; then
+    local pct=${five_pct%.*}
+    segments+=("$(default_color "$five_pct")5h: ${pct}%$(reset_color) (→$(fmt_time "$five_reset"))")
+  fi
+
+  if [[ -n "$week_pct" ]]; then
+    local pct=${week_pct%.*}
+    segments+=("$(default_color "$week_pct")week: ${pct}%$(reset_color) (→$(fmt_when "$week_reset"))")
+  fi
+
+  if [[ -n "$ctx_pct" ]]; then
+    local pct=${ctx_pct%.*}
+    local size_label=""
+    [[ -n "$ctx_size" ]] && size_label=" of $(fmt_size "$ctx_size")"
+    segments+=("$(default_color "$ctx_pct")$(ctx_circle "$ctx_pct") ${pct}%${size_label}$(reset_color)")
+  fi
+
+  if [[ -z "$ctx_pct" && -z "$five_pct" && -z "$week_pct" ]]; then
+    segments+=("usage data pending - make a request")
+  fi
+
+  local sep=" │ "
+  local out=""
+  local s
+  for s in "${segments[@]}"; do
+    [[ -n "$out" ]] && out+="$sep"
+    out+="$s"
+  done
+  printf '%b' "$out"
+}
+
+# ============================================================================
+# Theme: hearth — restrained warm
+#   • pulsing sparkle (· ↔ ✶) prefixes the model name
+#   • shimmer: one character of the model name is bolded per render, position
+#     rotates per second so the bright char "drifts" across the name
+#   • amber glyphs, dim italic reset times
+#   • tier color only kicks in for warn (orange) and urgent (bold red)
+# ============================================================================
+
+H_AMBER='\033[38;5;214m'    # warm amber — visible on light & dark
+H_DIM='\033[2m'             # dim attribute — adapts to terminal bg
+H_DIM_IT='\033[2;3m'        # dim italic — adapts
+H_ORANGE='\033[38;5;208m'   # warning
+H_RED='\033[1;38;5;196m'    # bold red, urgent
+H_BOLD='\033[1m'
+H_NOBOLD='\033[22m'
+H_RESET='\033[0m'
+
+# Body text uses the terminal's default foreground so the theme reads on
+# both light and dark backgrounds. Tier colors only kick in for warn/urgent.
+hearth_tier_fg() {
+  local pct=${1%.*}
+  [[ -z "$pct" ]] && return  # empty = no color = terminal default
+  if   ((pct >= 90)); then printf '%b' "$H_RED"
+  elif ((pct >= 70)); then printf '%b' "$H_ORANGE"
+  fi
+  # else: silent → text renders in default fg
+}
+
+# Render TEXT with one character bolded; the bold position rotates per second
+# so a "shimmer" appears to drift across the text between renders. No color
+# applied — the terminal's default fg carries it on both light & dark bg.
+hearth_shimmer() {
+  local text=$1
+  local n=${#text}
+  (( n == 0 )) && { printf '%s' "$text"; return; }
+  local pos=$(( $(date +%s) % n ))
+  local i char
+  for ((i=0; i<n; i++)); do
+    char="${text:i:1}"
+    if (( i == pos )); then
+      printf '%b%s%b' "$H_BOLD" "$char" "$H_NOBOLD"
+    else
+      printf '%s' "$char"
+    fi
+  done
+}
+
+render_hearth() {
+  if [[ -z "$ctx_pct" && -z "$five_pct" && -z "$week_pct" ]]; then
+    printf '%b%s%b %busage data pending - make a request%b' \
+      "$H_AMBER" "$(sparkle_now)" "$H_RESET" "$H_DIM_IT" "$H_RESET"
+    return
+  fi
+
+  local sep
+  sep=$(printf '%b · %b' "$H_DIM" "$H_RESET")
+
+  printf '%b%s%b %s' "$H_AMBER" "$(sparkle_now)" "$H_RESET" "$(hearth_shimmer "$model")"
+
+  if [[ -n "$five_pct" ]]; then
+    local pct=${five_pct%.*}
+    printf '%b' "$sep"
+    printf '%b%s%b 5h %b%d%%%b %b(→%s)%b' \
+      "$H_AMBER" "$(ctx_circle "$five_pct")" "$H_RESET" \
+      "$(hearth_tier_fg "$five_pct")" "$pct" "$H_RESET" \
+      "$H_DIM_IT" "$(fmt_time "$five_reset")" "$H_RESET"
+  fi
+
+  if [[ -n "$week_pct" ]]; then
+    local pct=${week_pct%.*}
+    printf '%b' "$sep"
+    printf '%b%s%b week %b%d%%%b %b(→%s)%b' \
+      "$H_AMBER" "$(ctx_circle "$week_pct")" "$H_RESET" \
+      "$(hearth_tier_fg "$week_pct")" "$pct" "$H_RESET" \
+      "$H_DIM_IT" "$(fmt_when "$week_reset")" "$H_RESET"
+  fi
+
+  if [[ -n "$ctx_pct" ]]; then
+    local pct=${ctx_pct%.*}
+    local size_label=""
+    [[ -n "$ctx_size" ]] && size_label=" of $(fmt_size "$ctx_size")"
+    printf '%b' "$sep"
+    printf '%b%s%b %b%d%%%b%b%s%b' \
+      "$H_AMBER" "$(ctx_circle "$ctx_pct")" "$H_RESET" \
+      "$(hearth_tier_fg "$ctx_pct")" "$pct" "$H_RESET" \
+      "$H_DIM_IT" "$size_label" "$H_RESET"
   fi
 }
 
-segments=()
-segments+=("$(printf '\033[1m%s\033[0m' "$model")")
+# ============================================================================
+# Theme: glow — pink neon arcade
+#   • Two hue families only: pink (the theme) + mint (cool counterpoint at
+#     calm). Sparkle and hot-tier share the same magenta on purpose — when
+#     usage climbs into the hot zone, the data lights up in the theme's
+#     signature color, then breaks to red at urgent for the alarm escape.
+#   • Bold weight + saturated 256-color values approximate "neon tube"
+#     since terminals can't text-shadow.
+#   • Italic rose halo for meta; dim middle-dot separators.
+# ============================================================================
 
-if [[ -n "$five_pct" ]]; then
-  pct=${five_pct%.*}
-  segments+=("$(colorize "$five_pct")5h: ${pct}%$(reset_color) (→$(fmt_time "$five_reset"))")
-fi
+G_NEON='\033[1;38;5;199m'   # bold magenta — signature theme color.
+                            #   Used for: sparkle (the bright headline tube)
+                            #   AND the hot tier (data joins the theme color
+                            #   when usage gets serious).
+G_MODEL='\033[1m'           # bold only — uses terminal default fg, adapts
+G_MINT='\033[1;38;5;41m'    # bold electric mint — calm tier, the only
+                            #   non-pink hue. Reads as "you're fine" without
+                            #   adding a third color family.
+G_PINK='\033[1;38;5;205m'   # bold light hot pink — warn tier, the on-ramp
+                            #   into the pink spectrum before it deepens to
+                            #   magenta at hot.
+G_RED='\033[1;38;5;197m'    # bold pink-red — urgent, the red end of the pink
+                            #   spectrum. Stays on theme (magenta hue family)
+                            #   while reading clearly as alarm. Pure 196 broke
+                            #   the palette identity; 197 keeps it inside.
+G_DIM='\033[2m'             # plain dim — separators only; adapts to bg
+G_META='\033[3;38;5;175m'   # italic desaturated rose — soft bloom halo. Lower
+                            #   luminance than the bright tubes so it reads as
+                            #   "the air around them glowing," not as data.
+G_RESET='\033[0m'
 
-if [[ -n "$week_pct" ]]; then
-  pct=${week_pct%.*}
-  segments+=("$(colorize "$week_pct")week: ${pct}%$(reset_color) (→$(fmt_when "$week_reset"))")
-fi
+glow_tier_fg() {
+  local pct=${1%.*}
+  [[ -z "$pct" ]] && { printf '%b' "$G_MINT"; return; }
+  if   ((pct >= 90)); then printf '%b' "$G_RED"
+  elif ((pct >= 70)); then printf '%b' "$G_NEON"
+  elif ((pct >= 50)); then printf '%b' "$G_PINK"
+  else                     printf '%b' "$G_MINT"
+  fi
+}
 
-if [[ -n "$ctx_pct" ]]; then
-  pct=${ctx_pct%.*}
-  size_label=""
-  [[ -n "$ctx_size" ]] && size_label=" of $(fmt_size "$ctx_size")"
-  segments+=("$(colorize "$ctx_pct")$(ctx_circle "$ctx_pct") ${pct}%${size_label}$(reset_color)")
-fi
+render_glow() {
+  if [[ -z "$ctx_pct" && -z "$five_pct" && -z "$week_pct" ]]; then
+    printf '%b%s%b %busage data pending - make a request%b' \
+      "$G_NEON" "$(sparkle_now)" "$G_RESET" "$G_META" "$G_RESET"
+    return
+  fi
 
-if [[ -z "$ctx_pct" && -z "$five_pct" && -z "$week_pct" ]]; then
-  segments+=("usage data pending - make a request")
-fi
+  local sep
+  sep=$(printf '%b · %b' "$G_DIM" "$G_RESET")
 
-sep=" │ "
-out=""
-for s in "${segments[@]}"; do
-  [[ -n "$out" ]] && out+="$sep"
-  out+="$s"
-done
-printf '%b' "$out"
+  printf '%b%s%b %b%s%b' \
+    "$G_NEON" "$(sparkle_now)" "$G_RESET" \
+    "$G_MODEL" "$model" "$G_RESET"
+
+  if [[ -n "$five_pct" ]]; then
+    local pct=${five_pct%.*}
+    printf '%b' "$sep"
+    printf '%b%s 5h %d%%%b %b(→%s)%b' \
+      "$(glow_tier_fg "$five_pct")" "$(ctx_circle "$five_pct")" "$pct" "$G_RESET" \
+      "$G_META" "$(fmt_time "$five_reset")" "$G_RESET"
+  fi
+
+  if [[ -n "$week_pct" ]]; then
+    local pct=${week_pct%.*}
+    printf '%b' "$sep"
+    printf '%b%s week %d%%%b %b(→%s)%b' \
+      "$(glow_tier_fg "$week_pct")" "$(ctx_circle "$week_pct")" "$pct" "$G_RESET" \
+      "$G_META" "$(fmt_when "$week_reset")" "$G_RESET"
+  fi
+
+  if [[ -n "$ctx_pct" ]]; then
+    local pct=${ctx_pct%.*}
+    local size_label=""
+    [[ -n "$ctx_size" ]] && size_label=" of $(fmt_size "$ctx_size")"
+    printf '%b' "$sep"
+    printf '%b%s %d%%%b%b%s%b' \
+      "$(glow_tier_fg "$ctx_pct")" "$(ctx_circle "$ctx_pct")" "$pct" "$G_RESET" \
+      "$G_META" "$size_label" "$G_RESET"
+  fi
+}
+
+# ============================================================================
+# Dispatch
+# ============================================================================
+
+case "$theme" in
+  hearth)         render_hearth ;;
+  glow)           render_glow ;;
+  default|*)      render_default ;;
+esac
