@@ -21,7 +21,7 @@ Three themes ship in the box. Pick one by creating `~/.claude/plan-statusline.co
 theme=hearth
 ```
 
-Then start a fresh Claude Code session.
+No restart needed — the statusline reads the config on every refresh, so the new theme shows up within a few seconds.
 
 | Theme    | What it looks like                                                                    |
 |----------|---------------------------------------------------------------------------------------|
@@ -30,6 +30,15 @@ Then start a fresh Claude Code session.
 | `glow`   | Pink neon arcade. Magenta sparkle, mint→pink→magenta→red tier ramp through the pink spectrum, italic rose halo on every reset time. Two-hue palette, no warm clutter. |
 
 If the file is missing or the theme name is unrecognized, the script falls back to `default` — your prior install keeps working untouched.
+
+### Just ask Claude Code
+
+You don't have to edit anything by hand. Once this statusline is installed, ask Claude Code in plain English:
+
+- *"switch my statusline to glow"* / *"go back to the default theme"*
+- *"make me a new statusline theme — ocean blues, calm"*
+
+It edits `~/.claude/plan-statusline.conf` (or adds a new render function to the script) for you, and since the statusline re-reads on every refresh, the change appears within a few seconds — no restart required.
 
 ## Why this exists
 
