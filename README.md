@@ -28,6 +28,7 @@ No restart needed — the statusline reads the config on every refresh, so the n
 | `default`| Today's look — basic ANSI colors, pipe separators, single circle on context.          |
 | `hearth` | Warm amber, restrained. Pulsing sparkle prefixes the model name and a "shimmer" character drifts across it between renders. Dim italic reset times. |
 | `glow`   | Pink neon arcade. Magenta sparkle, mint→pink→magenta→red tier ramp through the pink spectrum, italic rose halo on every reset time. Two-hue palette, no warm clutter. |
+| `scrubs` | Clinical teal vitals monitor. A health-cross "heartbeat" pulses by the model name; surgical-teal calm state ramps teal→bright-teal→amber→red like a patient monitor. Soft light-teal halo on reset times. |
 
 If the file is missing or the theme name is unrecognized, the script falls back to `default` — your prior install keeps working untouched.
 

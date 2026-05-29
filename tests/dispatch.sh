@@ -7,8 +7,8 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-SAMPLE='{"model":{"display_name":"Opus 4.7"},"rate_limits":{"five_hour":{"used_percentage":42,"resets_at":1746234000},"seven_day":{"used_percentage":78,"resets_at":1746500400}},"context_window":{"used_percentage":15,"context_window_size":1000000}}'
-EMPTY='{"model":{"display_name":"Opus 4.7"}}'
+SAMPLE='{"model":{"display_name":"Opus 4.8"},"rate_limits":{"five_hour":{"used_percentage":42,"resets_at":1746234000},"seven_day":{"used_percentage":78,"resets_at":1746500400}},"context_window":{"used_percentage":15,"context_window_size":1000000}}'
+EMPTY='{"model":{"display_name":"Opus 4.8"}}'
 
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
@@ -18,7 +18,7 @@ ESC=$(printf '\033')
 
 # Strip CSI escape sequences (\033[...m) so substring matching works across
 # themes that interleave ANSI codes inside the model name (e.g. hearth's
-# shimmer bolds one character per second, breaking the literal "Opus 4.7").
+# shimmer bolds one character per second, breaking the literal "Opus 4.8").
 strip_ansi() { sed -E "s/${ESC}\[[0-9;]*m//g"; }
 
 assert_renders() {
@@ -39,23 +39,29 @@ assert_renders() {
   printf 'PASS theme=%-8s (matched %q)\n' "${theme:-<none>}" "$expect"
 }
 
-# Every declared theme renders the model name
-assert_renders default "$SAMPLE" "Opus 4.7"
-assert_renders hearth  "$SAMPLE" "Opus 4.7"
-assert_renders glow    "$SAMPLE" "Opus 4.7"
+# Every theme that ships — add new themes here only.
+THEMES=(default hearth glow scrubs)
+# Removed/unknown names that must silently fall through to default
+# (backward compat, e.g. users with theme=pulse still in their config).
+UNKNOWN=(pulse zzz)
 
-# Removed/unknown theme name silently falls through to default
-# (backward compat for users with theme=pulse in their config)
-assert_renders pulse   "$SAMPLE" "Opus 4.7"
-assert_renders zzz     "$SAMPLE" "Opus 4.7"
+# Every declared theme renders the model name
+for t in "${THEMES[@]}"; do
+  assert_renders "$t" "$SAMPLE" "Opus 4.8"
+done
+
+# Unknown/removed theme names fall through to default and still render
+for t in "${UNKNOWN[@]}"; do
+  assert_renders "$t" "$SAMPLE" "Opus 4.8"
+done
 
 # No config file → default theme via case-statement catch-all
-assert_renders ""      "$SAMPLE" "Opus 4.7"
+assert_renders "" "$SAMPLE" "Opus 4.8"
 
-# Empty rate_limits → "usage data pending" placeholder text
-assert_renders default "$EMPTY"  "usage data pending"
-assert_renders hearth  "$EMPTY"  "usage data pending"
-assert_renders glow    "$EMPTY"  "usage data pending"
+# Empty rate_limits → "usage data pending" placeholder text, every theme
+for t in "${THEMES[@]}"; do
+  assert_renders "$t" "$EMPTY" "usage data pending"
+done
 
 echo
 echo "All dispatch tests passed."

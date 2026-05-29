@@ -320,11 +320,90 @@ render_glow() {
 }
 
 # ============================================================================
+# Theme: scrubs — clinical teal vitals monitor
+#   • Surgical-scrubs teal as the calm/normal state; the line reads like a
+#     patient-vitals display. Brand-clean clinical palette (teal primaries
+#     + soft light-teal halo), with universal monitor-alarm colors (amber,
+#     red) reserved for when usage actually climbs — so the teal dominates
+#     the healthy range you sit in most of the time.
+#   • A health-cross "heartbeat" pulses in place of the model-name sparkle.
+# ============================================================================
+
+S_TEAL='\033[38;5;30m'      # teal (#008787) — calm/normal tier, the resting vital
+S_BRIGHT='\033[1;38;5;37m'  # bold bright teal (#00afaf) — heartbeat + elevated tier
+S_AMBER='\033[38;5;214m'    # amber (#ffaf00) — caution tier, monitor alarm yellow
+S_RED='\033[1;38;5;196m'    # bold red (#ff0000) — critical tier, the alarm
+S_META='\033[3;38;5;152m'   # italic light teal (#afd7d7) — soft halo for reset times
+S_DIM='\033[2m'             # plain dim — separators only; adapts to bg
+S_BOLD='\033[1m'            # bold only — model name, uses terminal default fg
+S_RESET='\033[0m'
+
+# Health-cross heartbeat: dot → thin plus → heavy cross → thin plus. Pulses
+# once per second so the "·" swelling into "✚" reads as a vital sign ticking.
+SCRUBS_BEAT=('·' '+' '✚' '+')
+scrubs_beat() {
+  local frame=$(( $(date +%s) % ${#SCRUBS_BEAT[@]} ))
+  printf '%s' "${SCRUBS_BEAT[$frame]}"
+}
+
+scrubs_tier_fg() {
+  local pct=${1%.*}
+  [[ -z "$pct" ]] && { printf '%b' "$S_TEAL"; return; }
+  if   ((pct >= 90)); then printf '%b' "$S_RED"
+  elif ((pct >= 70)); then printf '%b' "$S_AMBER"
+  elif ((pct >= 50)); then printf '%b' "$S_BRIGHT"
+  else                     printf '%b' "$S_TEAL"
+  fi
+}
+
+render_scrubs() {
+  if [[ -z "$ctx_pct" && -z "$five_pct" && -z "$week_pct" ]]; then
+    printf '%b%s%b %busage data pending - make a request%b' \
+      "$S_BRIGHT" "$(scrubs_beat)" "$S_RESET" "$S_META" "$S_RESET"
+    return
+  fi
+
+  local sep
+  sep=$(printf '%b · %b' "$S_DIM" "$S_RESET")
+
+  printf '%b%s%b %b%s%b' \
+    "$S_BRIGHT" "$(scrubs_beat)" "$S_RESET" \
+    "$S_BOLD" "$model" "$S_RESET"
+
+  if [[ -n "$five_pct" ]]; then
+    local pct=${five_pct%.*}
+    printf '%b' "$sep"
+    printf '%b%s 5h %d%%%b %b(→%s)%b' \
+      "$(scrubs_tier_fg "$five_pct")" "$(ctx_circle "$five_pct")" "$pct" "$S_RESET" \
+      "$S_META" "$(fmt_time "$five_reset")" "$S_RESET"
+  fi
+
+  if [[ -n "$week_pct" ]]; then
+    local pct=${week_pct%.*}
+    printf '%b' "$sep"
+    printf '%b%s week %d%%%b %b(→%s)%b' \
+      "$(scrubs_tier_fg "$week_pct")" "$(ctx_circle "$week_pct")" "$pct" "$S_RESET" \
+      "$S_META" "$(fmt_when "$week_reset")" "$S_RESET"
+  fi
+
+  if [[ -n "$ctx_pct" ]]; then
+    local pct=${ctx_pct%.*}
+    local size_label=""
+    [[ -n "$ctx_size" ]] && size_label=" of $(fmt_size "$ctx_size")"
+    printf '%b' "$sep"
+    printf '%b%s %d%%%b%b%s%b' \
+      "$(scrubs_tier_fg "$ctx_pct")" "$(ctx_circle "$ctx_pct")" "$pct" "$S_RESET" \
+      "$S_META" "$size_label" "$S_RESET"
+  fi
+}
+
+# ============================================================================
 # Dispatch
 # ============================================================================
 
 case "$theme" in
   hearth)         render_hearth ;;
   glow)           render_glow ;;
+  scrubs)         render_scrubs ;;
   default|*)      render_default ;;
 esac
