@@ -27,8 +27,12 @@ if [[ -f "$config_file" ]]; then
   done < "$config_file"
 fi
 
-# --- Parse stdin JSON (one jq call into 7 vars via @tsv) ---
-IFS=$'\t' read -r model five_pct five_reset week_pct week_reset ctx_pct ctx_size < <(
+# --- Parse stdin JSON (one jq call into 7 vars) ---
+# Join with the ASCII unit separator (\x1f), NOT @tsv: tab counts as IFS
+# *whitespace*, so bash `read` collapses consecutive tabs and empty fields
+# shift everything left (a missing context % once rendered the 1M window
+# size as "1000000%"). Non-whitespace delimiters preserve empty fields.
+IFS=$'\x1f' read -r model five_pct five_reset week_pct week_reset ctx_pct ctx_size < <(
   printf '%s' "$input" | jq -r '[
     .model.display_name // .model.id // "Claude",
     .rate_limits.five_hour.used_percentage // "",
@@ -37,7 +41,7 @@ IFS=$'\t' read -r model five_pct five_reset week_pct week_reset ctx_pct ctx_size
     .rate_limits.seven_day.resets_at // "",
     .context_window.used_percentage // "",
     .context_window.context_window_size // ""
-  ] | @tsv'
+  ] | map(tostring) | join("\u001f")'
 )
 
 # ============================================================================
@@ -97,6 +101,13 @@ sparkle_now() {
   printf '%s' "${SPARKLES[$frame]}"
 }
 
+# True when either rate limit is pegged at 100% — drives each theme's
+# 100% easter egg state (flatline, burnout, game over, skull).
+limit_pegged() {
+  { [[ -n "$five_pct" ]] && (( ${five_pct%.*} >= 100 )); } ||
+  { [[ -n "$week_pct" ]] && (( ${week_pct%.*} >= 100 )); }
+}
+
 # ============================================================================
 # Theme: default — today's look (preserved exactly)
 # ============================================================================
@@ -117,12 +128,21 @@ render_default() {
 
   if [[ -n "$five_pct" ]]; then
     local pct=${five_pct%.*}
-    segments+=("$(default_color "$five_pct")5h: ${pct}%$(reset_color) (→$(fmt_time "$five_reset"))")
+    if ((pct >= 100)); then
+      # 100% easter egg: you died. Respawn timer below.
+      segments+=("$(printf '\033[31m5h: 100%% 💀\033[0m') (respawn →$(fmt_time "$five_reset"))")
+    else
+      segments+=("$(default_color "$five_pct")5h: ${pct}%$(reset_color) (→$(fmt_time "$five_reset"))")
+    fi
   fi
 
   if [[ -n "$week_pct" ]]; then
     local pct=${week_pct%.*}
-    segments+=("$(default_color "$week_pct")week: ${pct}%$(reset_color) (→$(fmt_when "$week_reset"))")
+    if ((pct >= 100)); then
+      segments+=("$(printf '\033[31mweek: 100%% 💀\033[0m') (respawn →$(fmt_when "$week_reset"))")
+    else
+      segments+=("$(default_color "$week_pct")week: ${pct}%$(reset_color) (→$(fmt_when "$week_reset"))")
+    fi
   fi
 
   if [[ -n "$ctx_pct" ]]; then
@@ -194,6 +214,28 @@ hearth_shimmer() {
   done
 }
 
+# 100% easter egg: the fire has gone out. The sparkle stops and a wisp of
+# smoke drifts up from the cold hearth (frames rise · → ˚ per second).
+HEARTH_SMOKE=('∙' '∘' '°' '˚')
+hearth_spark() {
+  if limit_pegged; then
+    local frame=$(( $(date +%s) % ${#HEARTH_SMOKE[@]} ))
+    printf '%b%s%b' "$H_DIM" "${HEARTH_SMOKE[$frame]}" "$H_RESET"
+  else
+    printf '%b%s%b' "$H_AMBER" "$(sparkle_now)" "$H_RESET"
+  fi
+}
+
+# A pegged limit reads as a cold ember: dim hollow circle, "burnt out",
+# and the reset time becomes the rekindling.
+hearth_burnout() {
+  local label=$1 reset_label=$2
+  printf '%b○%b %s %bburnt out%b %b(rekindles →%s)%b' \
+    "$H_DIM" "$H_RESET" "$label" \
+    "$H_RED" "$H_RESET" \
+    "$H_DIM_IT" "$reset_label" "$H_RESET"
+}
+
 render_hearth() {
   if [[ -z "$ctx_pct" && -z "$five_pct" && -z "$week_pct" ]]; then
     printf '%b%s%b %busage data pending - make a request%b' \
@@ -204,24 +246,32 @@ render_hearth() {
   local sep
   sep=$(printf '%b · %b' "$H_DIM" "$H_RESET")
 
-  printf '%b%s%b %s' "$H_AMBER" "$(sparkle_now)" "$H_RESET" "$(hearth_shimmer "$model")"
+  printf '%s %s' "$(hearth_spark)" "$(hearth_shimmer "$model")"
 
   if [[ -n "$five_pct" ]]; then
     local pct=${five_pct%.*}
     printf '%b' "$sep"
-    printf '%b%s%b 5h %b%d%%%b %b(→%s)%b' \
-      "$H_AMBER" "$(ctx_circle "$five_pct")" "$H_RESET" \
-      "$(hearth_tier_fg "$five_pct")" "$pct" "$H_RESET" \
-      "$H_DIM_IT" "$(fmt_time "$five_reset")" "$H_RESET"
+    if (( pct >= 100 )); then
+      hearth_burnout "5h" "$(fmt_time "$five_reset")"
+    else
+      printf '%b%s%b 5h %b%d%%%b %b(→%s)%b' \
+        "$H_AMBER" "$(ctx_circle "$five_pct")" "$H_RESET" \
+        "$(hearth_tier_fg "$five_pct")" "$pct" "$H_RESET" \
+        "$H_DIM_IT" "$(fmt_time "$five_reset")" "$H_RESET"
+    fi
   fi
 
   if [[ -n "$week_pct" ]]; then
     local pct=${week_pct%.*}
     printf '%b' "$sep"
-    printf '%b%s%b week %b%d%%%b %b(→%s)%b' \
-      "$H_AMBER" "$(ctx_circle "$week_pct")" "$H_RESET" \
-      "$(hearth_tier_fg "$week_pct")" "$pct" "$H_RESET" \
-      "$H_DIM_IT" "$(fmt_when "$week_reset")" "$H_RESET"
+    if (( pct >= 100 )); then
+      hearth_burnout "week" "$(fmt_when "$week_reset")"
+    else
+      printf '%b%s%b week %b%d%%%b %b(→%s)%b' \
+        "$H_AMBER" "$(ctx_circle "$week_pct")" "$H_RESET" \
+        "$(hearth_tier_fg "$week_pct")" "$pct" "$H_RESET" \
+        "$H_DIM_IT" "$(fmt_when "$week_reset")" "$H_RESET"
+    fi
   fi
 
   if [[ -n "$ctx_pct" ]]; then
@@ -278,6 +328,18 @@ glow_tier_fg() {
   fi
 }
 
+# 100% easter egg: the cabinet drops into attract mode. The segment flashes
+# between GAME OVER (alarm red-pink) and INSERT COIN (signature magenta) once
+# per second, and the reset time becomes the free credit — your 1UP.
+glow_gameover() {
+  local label=$1 reset_label=$2
+  local msg='GAME OVER' fg="$G_RED"
+  (( $(date +%s) % 2 )) && { msg='INSERT COIN'; fg="$G_NEON"; }
+  printf '%b%s %s%b %b(1UP →%s)%b' \
+    "$fg" "$label" "$msg" "$G_RESET" \
+    "$G_META" "$reset_label" "$G_RESET"
+}
+
 render_glow() {
   if [[ -z "$ctx_pct" && -z "$five_pct" && -z "$week_pct" ]]; then
     printf '%b%s%b %busage data pending - make a request%b' \
@@ -295,17 +357,25 @@ render_glow() {
   if [[ -n "$five_pct" ]]; then
     local pct=${five_pct%.*}
     printf '%b' "$sep"
-    printf '%b%s 5h %d%%%b %b(→%s)%b' \
-      "$(glow_tier_fg "$five_pct")" "$(ctx_circle "$five_pct")" "$pct" "$G_RESET" \
-      "$G_META" "$(fmt_time "$five_reset")" "$G_RESET"
+    if (( pct >= 100 )); then
+      glow_gameover "5h" "$(fmt_time "$five_reset")"
+    else
+      printf '%b%s 5h %d%%%b %b(→%s)%b' \
+        "$(glow_tier_fg "$five_pct")" "$(ctx_circle "$five_pct")" "$pct" "$G_RESET" \
+        "$G_META" "$(fmt_time "$five_reset")" "$G_RESET"
+    fi
   fi
 
   if [[ -n "$week_pct" ]]; then
     local pct=${week_pct%.*}
     printf '%b' "$sep"
-    printf '%b%s week %d%%%b %b(→%s)%b' \
-      "$(glow_tier_fg "$week_pct")" "$(ctx_circle "$week_pct")" "$pct" "$G_RESET" \
-      "$G_META" "$(fmt_when "$week_reset")" "$G_RESET"
+    if (( pct >= 100 )); then
+      glow_gameover "week" "$(fmt_when "$week_reset")"
+    else
+      printf '%b%s week %d%%%b %b(→%s)%b' \
+        "$(glow_tier_fg "$week_pct")" "$(ctx_circle "$week_pct")" "$pct" "$G_RESET" \
+        "$G_META" "$(fmt_when "$week_reset")" "$G_RESET"
+    fi
   fi
 
   if [[ -n "$ctx_pct" ]]; then
@@ -341,9 +411,24 @@ S_RESET='\033[0m'
 # Health-cross heartbeat: dot → thin plus → heavy cross → thin plus. Pulses
 # once per second so the "·" swelling into "✚" reads as a vital sign ticking.
 SCRUBS_BEAT=('·' '+' '✚' '+')
+
 scrubs_beat() {
+  # No pulse on a coded patient: the heartbeat flatlines.
+  limit_pegged && { printf '─'; return; }
   local frame=$(( $(date +%s) % ${#SCRUBS_BEAT[@]} ))
   printf '%s' "${SCRUBS_BEAT[$frame]}"
+}
+
+# 100% easter egg: the monitor calls a code. The segment flashes between the
+# alarm call and a flat trace once per second, and the reset time becomes the
+# defib charge time ("when the paddles bring you back").
+scrubs_flatline() {
+  local label=$1 reset_label=$2
+  local msg='CODE BLUE'
+  (( $(date +%s) % 2 )) && msg='▁▁▁▁▁▁▁▁▁'
+  printf '%b%s %s%b %b(defib →%s)%b' \
+    "$S_RED" "$label" "$msg" "$S_RESET" \
+    "$S_META" "$reset_label" "$S_RESET"
 }
 
 scrubs_tier_fg() {
@@ -373,17 +458,25 @@ render_scrubs() {
   if [[ -n "$five_pct" ]]; then
     local pct=${five_pct%.*}
     printf '%b' "$sep"
-    printf '%b%s 5h %d%%%b %b(→%s)%b' \
-      "$(scrubs_tier_fg "$five_pct")" "$(ctx_circle "$five_pct")" "$pct" "$S_RESET" \
-      "$S_META" "$(fmt_time "$five_reset")" "$S_RESET"
+    if (( pct >= 100 )); then
+      scrubs_flatline "5h" "$(fmt_time "$five_reset")"
+    else
+      printf '%b%s 5h %d%%%b %b(→%s)%b' \
+        "$(scrubs_tier_fg "$five_pct")" "$(ctx_circle "$five_pct")" "$pct" "$S_RESET" \
+        "$S_META" "$(fmt_time "$five_reset")" "$S_RESET"
+    fi
   fi
 
   if [[ -n "$week_pct" ]]; then
     local pct=${week_pct%.*}
     printf '%b' "$sep"
-    printf '%b%s week %d%%%b %b(→%s)%b' \
-      "$(scrubs_tier_fg "$week_pct")" "$(ctx_circle "$week_pct")" "$pct" "$S_RESET" \
-      "$S_META" "$(fmt_when "$week_reset")" "$S_RESET"
+    if (( pct >= 100 )); then
+      scrubs_flatline "week" "$(fmt_when "$week_reset")"
+    else
+      printf '%b%s week %d%%%b %b(→%s)%b' \
+        "$(scrubs_tier_fg "$week_pct")" "$(ctx_circle "$week_pct")" "$pct" "$S_RESET" \
+        "$S_META" "$(fmt_when "$week_reset")" "$S_RESET"
+    fi
   fi
 
   if [[ -n "$ctx_pct" ]]; then
