@@ -11,10 +11,13 @@ fails=0
 ok()   { printf 'PASS %s\n' "$1"; }
 bad()  { printf 'FAIL %s\n' "$1" >&2; fails=$((fails+1)); }
 
-# Sourcing the script with stdin closed must return promptly (proves main() is
-# guarded — an unguarded `input=$(cat)` would hang here).
+# Sourcing must define functions WITHOUT rendering (no stdout side-effect).
+# The unguarded script renders during source; the guard prevents that.
+out=$(source ./statusline.sh </dev/null)
+[[ -z "$out" ]] && ok "source: no render side-effect" || bad "source: no render side-effect (got: $out)"
+
+# Source in the parent shell so functions are visible to the checks below.
 source ./statusline.sh </dev/null
-ok "source: did not block on stdin"
 
 # After sourcing, helper functions exist.
 declare -F render_default >/dev/null && ok "source: functions defined" \
