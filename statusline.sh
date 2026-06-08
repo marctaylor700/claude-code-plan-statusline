@@ -81,12 +81,14 @@ limit_pegged() {
 now_ms() {
   # bash 5+: EPOCHREALTIME = "seconds.microseconds" — no subprocess.
   if [[ -n "${EPOCHREALTIME:-}" ]]; then
-    local s=${EPOCHREALTIME%.*} us=${EPOCHREALTIME#*.}
+    local er=${EPOCHREALTIME//,/.}        # normalize locale radix (de_DE etc.)
+    local s=${er%.*} us=${er#*.}
     us=${us}000000; us=${us:0:6}
     printf '%d' $(( 10#$s * 1000 + 10#$us / 1000 ))
     return
   fi
-  # GNU date: nanoseconds. BSD date prints a literal 'N' -> regex rejects it.
+  # GNU date and modern macOS date emit nanoseconds; older BSD date prints a
+  # literal 'N' -> the digit regex gates it either way.
   local ns
   ns=$(date +%s%N 2>/dev/null)
   if [[ "$ns" =~ ^[0-9]+$ ]]; then
