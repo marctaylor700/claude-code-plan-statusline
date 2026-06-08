@@ -11,39 +11,6 @@
 
 set -uo pipefail
 
-input=$(cat)
-
-# --- Config: read theme name from ~/.claude/plan-statusline.conf if present ---
-theme=default
-config_file="${HOME}/.claude/plan-statusline.conf"
-if [[ -f "$config_file" ]]; then
-  while IFS='=' read -r key value; do
-    key=${key// /}
-    value=${value// /}
-    value=${value%\"}; value=${value#\"}
-    case "$key" in
-      theme) [[ -n "$value" ]] && theme="$value" ;;
-    esac
-  done < "$config_file"
-fi
-
-# --- Parse stdin JSON (one jq call into 7 vars) ---
-# Join with the ASCII unit separator (\x1f), NOT @tsv: tab counts as IFS
-# *whitespace*, so bash `read` collapses consecutive tabs and empty fields
-# shift everything left (a missing context % once rendered the 1M window
-# size as "1000000%"). Non-whitespace delimiters preserve empty fields.
-IFS=$'\x1f' read -r model five_pct five_reset week_pct week_reset ctx_pct ctx_size < <(
-  printf '%s' "$input" | jq -r '[
-    .model.display_name // .model.id // "Claude",
-    .rate_limits.five_hour.used_percentage // "",
-    .rate_limits.five_hour.resets_at // "",
-    .rate_limits.seven_day.used_percentage // "",
-    .rate_limits.seven_day.resets_at // "",
-    .context_window.used_percentage // "",
-    .context_window.context_window_size // ""
-  ] | map(tostring) | join("\u001f")'
-)
-
 # ============================================================================
 # Shared helpers (used by every theme)
 # ============================================================================
@@ -491,12 +458,52 @@ render_scrubs() {
 }
 
 # ============================================================================
-# Dispatch
+# main — only runs when executed, not when sourced
 # ============================================================================
 
-case "$theme" in
-  hearth)         render_hearth ;;
-  glow)           render_glow ;;
-  scrubs)         render_scrubs ;;
-  default|*)      render_default ;;
-esac
+main() {
+  input=$(cat)
+
+  # --- Config: read theme name from ~/.claude/plan-statusline.conf if present ---
+  theme=default
+  config_file="${HOME}/.claude/plan-statusline.conf"
+  if [[ -f "$config_file" ]]; then
+    while IFS='=' read -r key value; do
+      key=${key// /}
+      value=${value// /}
+      value=${value%\"}; value=${value#\"}
+      case "$key" in
+        theme) [[ -n "$value" ]] && theme="$value" ;;
+      esac
+    done < "$config_file"
+  fi
+
+  # --- Parse stdin JSON (one jq call into 7 vars) ---
+  # Join with the ASCII unit separator (\x1f), NOT @tsv: tab counts as IFS
+  # *whitespace*, so bash `read` collapses consecutive tabs and empty fields
+  # shift everything left (a missing context % once rendered the 1M window
+  # size as "1000000%"). Non-whitespace delimiters preserve empty fields.
+  IFS=$'\x1f' read -r model five_pct five_reset week_pct week_reset ctx_pct ctx_size < <(
+    printf '%s' "$input" | jq -r '[
+      .model.display_name // .model.id // "Claude",
+      .rate_limits.five_hour.used_percentage // "",
+      .rate_limits.five_hour.resets_at // "",
+      .rate_limits.seven_day.used_percentage // "",
+      .rate_limits.seven_day.resets_at // "",
+      .context_window.used_percentage // "",
+      .context_window.context_window_size // ""
+    ] | map(tostring) | join("\u001f")'
+  )
+
+  # --- Dispatch ---
+  case "$theme" in
+    hearth)         render_hearth ;;
+    glow)           render_glow ;;
+    scrubs)         render_scrubs ;;
+    default|*)      render_default ;;
+  esac
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  main
+fi
