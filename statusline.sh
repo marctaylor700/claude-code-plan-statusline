@@ -142,6 +142,60 @@ sweep() {
 }
 
 # ============================================================================
+# Theme loaders — each sets the globals render_line consumes. Pure data.
+# Tier thresholds are shared: urgent >=90, hot >=70, warn >=50, else calm.
+# Empty TIER_* = terminal default fg (used by hearth's silent calm/warn).
+# ============================================================================
+
+theme_default() {            # basic ANSI, faithful to the original look
+  TIER_CALM=32; TIER_WARN=33; TIER_HOT='38;5;208'; TIER_URGENT=31
+  SWEEP_RAMP=( '' '38;5;252' '1;38;5;255' )   # plain -> grey -> bold white band
+  SEP=' │ '; SEP_COLOR=''
+  META=''                                      # reset/size inherit tier color
+  SEG_CIRCLE=0; LABEL_SEP=':'
+  EGG_GLYPH=''; EGG_GLYPH_COLOR=''
+  EGG_MSG_A='100% 💀'; EGG_COLOR_A=31
+  EGG_MSG_B='100% 💀'; EGG_COLOR_B=31          # equal -> no flash
+  EGG_RESET_WORD='respawn'
+}
+
+theme_hearth() {             # warm amber, restrained (silent calm/warn)
+  TIER_CALM=''; TIER_WARN=''; TIER_HOT='38;5;208'; TIER_URGENT='1;38;5;196'
+  SWEEP_RAMP=( '38;5;214' '38;5;221' '1;38;5;230' )   # amber -> gold -> pale gold
+  SEP=' · '; SEP_COLOR=2
+  META='2;3'                                   # dim italic
+  SEG_CIRCLE=1; LABEL_SEP=''
+  EGG_GLYPH='○'; EGG_GLYPH_COLOR=2
+  EGG_MSG_A='burnt out'; EGG_COLOR_A='1;38;5;196'
+  EGG_MSG_B='burnt out'; EGG_COLOR_B='1;38;5;196'
+  EGG_RESET_WORD='rekindles'
+}
+
+theme_glow() {               # pink neon arcade
+  TIER_CALM='1;38;5;41'; TIER_WARN='1;38;5;205'; TIER_HOT='1;38;5;199'; TIER_URGENT='1;38;5;197'
+  SWEEP_RAMP=( '1;38;5;205' '1;38;5;199' '1;38;5;231' )   # pink -> magenta -> white-hot
+  SEP=' · '; SEP_COLOR=2
+  META='3;38;5;175'                            # italic rose
+  SEG_CIRCLE=1; LABEL_SEP=''
+  EGG_GLYPH=''; EGG_GLYPH_COLOR=''
+  EGG_MSG_A='GAME OVER';   EGG_COLOR_A='1;38;5;197'
+  EGG_MSG_B='INSERT COIN'; EGG_COLOR_B='1;38;5;199'   # flashes
+  EGG_RESET_WORD='1UP'
+}
+
+theme_scrubs() {             # clinical teal vitals monitor
+  TIER_CALM='38;5;30'; TIER_WARN='1;38;5;37'; TIER_HOT='38;5;214'; TIER_URGENT='1;38;5;196'
+  SWEEP_RAMP=( '38;5;30' '38;5;37' '1;38;5;159' )   # teal -> bright teal -> pale cyan
+  SEP=' · '; SEP_COLOR=2
+  META='3;38;5;152'                            # italic light teal
+  SEG_CIRCLE=1; LABEL_SEP=''
+  EGG_GLYPH=''; EGG_GLYPH_COLOR=''
+  EGG_MSG_A='CODE BLUE';      EGG_COLOR_A='1;38;5;196'
+  EGG_MSG_B='▁▁▁▁▁▁▁▁▁';      EGG_COLOR_B='1;38;5;196'   # flashes (text <-> flat trace)
+  EGG_RESET_WORD='defib'
+}
+
+# ============================================================================
 # Theme: default — today's look (preserved exactly)
 # ============================================================================
 

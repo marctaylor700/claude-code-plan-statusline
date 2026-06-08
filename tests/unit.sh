@@ -45,6 +45,20 @@ five_pct=100
 [[ "$(sweep 'Opus 4.8' | strip_ansi)" == "Opus 4.8" ]] && ok "sweep: pegged preserves text" || bad "sweep: pegged"
 five_pct=''
 
+# ── theme loaders ────────────────────────────────────────────────────────────
+theme_default
+[[ "$LABEL_SEP" == ":" ]] && ok "theme_default: LABEL_SEP" || bad "theme_default: LABEL_SEP ('$LABEL_SEP')"
+[[ "$SEG_CIRCLE" == "0" ]] && ok "theme_default: SEG_CIRCLE" || bad "theme_default: SEG_CIRCLE"
+[[ ${#SWEEP_RAMP[@]} -eq 3 ]] && ok "theme_default: ramp len" || bad "theme_default: ramp len"
+
+for t in hearth glow scrubs; do
+  "theme_$t"
+  [[ ${#SWEEP_RAMP[@]} -eq 3 ]] && ok "theme_$t: ramp len" || bad "theme_$t: ramp len"
+  [[ "$LABEL_SEP" == "" ]]      && ok "theme_$t: LABEL_SEP empty" || bad "theme_$t: LABEL_SEP ('$LABEL_SEP')"
+  [[ "$SEG_CIRCLE" == "1" ]]    && ok "theme_$t: SEG_CIRCLE" || bad "theme_$t: SEG_CIRCLE"
+  [[ -n "$EGG_RESET_WORD" ]]    && ok "theme_$t: egg word" || bad "theme_$t: egg word"
+done
+
 echo
 if (( fails )); then echo "unit: $fails FAILED"; exit 1; fi
 echo "All unit tests passed."
