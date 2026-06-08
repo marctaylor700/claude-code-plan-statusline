@@ -75,6 +75,36 @@ limit_pegged() {
   { [[ -n "$week_pct" ]] && (( ${week_pct%.*} >= 100 )); }
 }
 
+# Milliseconds since epoch from the best available source. The statusline is a
+# fresh process per repaint, so the sweep position must come from wall-clock time.
+# Prefer sources that spawn no extra process; degrade to whole seconds last.
+now_ms() {
+  # bash 5+: EPOCHREALTIME = "seconds.microseconds" — no subprocess.
+  if [[ -n "${EPOCHREALTIME:-}" ]]; then
+    local s=${EPOCHREALTIME%.*} us=${EPOCHREALTIME#*.}
+    us=${us}000000; us=${us:0:6}
+    printf '%d' $(( 10#$s * 1000 + 10#$us / 1000 ))
+    return
+  fi
+  # GNU date: nanoseconds. BSD date prints a literal 'N' -> regex rejects it.
+  local ns
+  ns=$(date +%s%N 2>/dev/null)
+  if [[ "$ns" =~ ^[0-9]+$ ]]; then
+    printf '%d' $(( ns / 1000000 ))
+    return
+  fi
+  # perl (preinstalled on macOS).
+  if command -v perl >/dev/null 2>&1; then
+    perl -MTime::HiRes -e 'printf "%d", Time::HiRes::time()*1000' && return
+  fi
+  # python3.
+  if command -v python3 >/dev/null 2>&1; then
+    python3 -c 'import time;print(int(time.time()*1000))' && return
+  fi
+  # Last resort: whole seconds.
+  printf '%d' $(( $(date +%s) * 1000 ))
+}
+
 # ============================================================================
 # Theme: default — today's look (preserved exactly)
 # ============================================================================

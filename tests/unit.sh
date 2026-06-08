@@ -23,6 +23,11 @@ source ./statusline.sh </dev/null
 declare -F render_default >/dev/null && ok "source: functions defined" \
   || bad "source: functions defined"
 
+# now_ms returns integer milliseconds, sane magnitude (> year 2001 in ms).
+ms=$(now_ms)
+[[ "$ms" =~ ^[0-9]+$ ]] && ok "now_ms: integer ($ms)" || bad "now_ms: integer (got '$ms')"
+(( ms > 1000000000000 )) && ok "now_ms: magnitude" || bad "now_ms: magnitude ($ms)"
+
 echo
 if (( fails )); then echo "unit: $fails FAILED"; exit 1; fi
 echo "All unit tests passed."
