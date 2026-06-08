@@ -196,6 +196,90 @@ theme_scrubs() {             # clinical teal vitals monitor
 }
 
 # ============================================================================
+# Shared renderer
+# ============================================================================
+
+# Wrap TEXT in an SGR if non-empty (self-terminating); else print plain.
+paint() {
+  local sgr=$1 text=$2
+  if [[ -n "$sgr" ]]; then printf '\033[%sm%s\033[0m' "$sgr" "$text"
+  else printf '%s' "$text"; fi
+}
+
+paint_sep() { paint "$SEP_COLOR" "$SEP"; }
+
+# SGR for a percentage by shared tier thresholds (may be empty = default fg).
+tier_color() {
+  local pct=${1%.*}
+  [[ -z "$pct" ]] && return
+  if   (( pct >= 90 )); then printf '%s' "$TIER_URGENT"
+  elif (( pct >= 70 )); then printf '%s' "$TIER_HOT"
+  elif (( pct >= 50 )); then printf '%s' "$TIER_WARN"
+  else                       printf '%s' "$TIER_CALM"
+  fi
+}
+
+# Meta SGR: explicit META if set, else inherit the segment's tier SGR
+# (so default's reset times / size label match the value color, as before).
+meta_sgr() { if [[ -n "$META" ]]; then printf '%s' "$META"; else printf '%s' "$1"; fi; }
+
+# A rate segment (5h / week): "[circle ]label<sep> pct% (->reset)" or the egg.
+seg_rate() {
+  local label=$1 pctraw=$2 reset_str=$3
+  local pct=${pctraw%.*}
+  if (( pct >= 100 )); then egg "$label" "$reset_str"; return; fi
+  local tier; tier=$(tier_color "$pct")
+  local circle=''
+  (( SEG_CIRCLE )) && circle="$(ctx_circle "$pct") "
+  paint "$tier" "${circle}${label}${LABEL_SEP} ${pct}%"
+  printf ' '
+  paint "$(meta_sgr "$tier")" "(→${reset_str})"
+}
+
+# The context segment: always circled, no label / reset / egg.
+seg_ctx() {
+  local pctraw=$1 size=$2
+  local pct=${pctraw%.*}
+  local tier; tier=$(tier_color "$pct")
+  paint "$tier" "$(ctx_circle "$pct") ${pct}%"
+  [[ -n "$size" ]] && paint "$(meta_sgr "$tier")" "$size"
+}
+
+# 100% easter egg for a rate segment. Flashes A<->B per second when they differ.
+egg() {
+  local label=$1 reset_str=$2 msg col
+  if (( $(date +%s) % 2 )) && [[ "$EGG_MSG_A" != "$EGG_MSG_B" ]]; then
+    msg=$EGG_MSG_B; col=$EGG_COLOR_B
+  else
+    msg=$EGG_MSG_A; col=$EGG_COLOR_A
+  fi
+  [[ -n "$EGG_GLYPH" ]] && printf '\033[%sm%s\033[0m ' "$EGG_GLYPH_COLOR" "$EGG_GLYPH"
+  paint "$col" "${label}${LABEL_SEP} ${msg}"
+  printf ' '
+  if [[ -n "$META" ]]; then
+    paint "$META" "(${EGG_RESET_WORD} →${reset_str})"
+  else
+    printf '(%s →%s)' "$EGG_RESET_WORD" "$reset_str"
+  fi
+}
+
+# The one renderer: swept model name, then any present segments joined by SEP.
+render_line() {
+  if [[ -z "$ctx_pct" && -z "$five_pct" && -z "$week_pct" ]]; then
+    sweep "$model"; paint_sep
+    paint "$META" 'usage data pending - make a request'
+    return
+  fi
+  sweep "$model"
+  [[ -n "$five_pct" ]] && { paint_sep; seg_rate '5h' "$five_pct" "$(fmt_time "$five_reset")"; }
+  [[ -n "$week_pct" ]] && { paint_sep; seg_rate 'week' "$week_pct" "$(fmt_when "$week_reset")"; }
+  if [[ -n "$ctx_pct" ]]; then
+    local size=''; [[ -n "$ctx_size" ]] && size=" of $(fmt_size "$ctx_size")"
+    paint_sep; seg_ctx "$ctx_pct" "$size"
+  fi
+}
+
+# ============================================================================
 # Theme: default — today's look (preserved exactly)
 # ============================================================================
 

@@ -63,5 +63,48 @@ for t in "${THEMES[@]}"; do
   assert_renders "$t" "$EMPTY" "usage data pending"
 done
 
+PEGGED='{"model":{"display_name":"Opus 4.8"},"rate_limits":{"five_hour":{"used_percentage":100,"resets_at":1746234000},"seven_day":{"used_percentage":78,"resets_at":1746500400}},"context_window":{"used_percentage":15,"context_window_size":1000000}}'
+
+# --- render_line faithfulness (TZ-independent substrings) ---
+# Drive render_line directly by sourcing, loading a theme, setting parsed vars.
+render_check() {
+  local theme=$1 expect=$2
+  local plain
+  plain=$(
+    five_pct=42 five_reset=1746234000 \
+    week_pct=78 week_reset=1746500400 \
+    ctx_pct=15 ctx_size=1000000 model='Opus 4.8' \
+    bash -c "source ./statusline.sh; theme_$theme; render_line" | strip_ansi
+  )
+  if [[ "$plain" != *"$expect"* ]]; then
+    printf 'FAIL render theme=%-8s expected %q\n  got: %s\n' "$theme" "$expect" "$plain" >&2
+    return 1
+  fi
+  printf 'PASS render theme=%-8s (matched %q)\n' "$theme" "$expect"
+}
+
+render_check default "5h: 42%"
+render_check default "◔ 15% of 1M"
+for t in hearth glow scrubs; do
+  render_check "$t" "◑ 5h 42%"
+  render_check "$t" "◕ week 78%"
+done
+
+egg_check() {
+  local theme=$1 expect=$2 plain
+  plain=$(
+    five_pct=100 five_reset=1746234000 \
+    week_pct=78 week_reset=1746500400 \
+    ctx_pct=15 ctx_size=1000000 model='Opus 4.8' \
+    bash -c "source ./statusline.sh; theme_$theme; render_line" | strip_ansi
+  )
+  [[ "$plain" == *"$expect"* ]] && printf 'PASS egg theme=%-8s (%q)\n' "$theme" "$expect" \
+    || { printf 'FAIL egg theme=%-8s expected %q got: %s\n' "$theme" "$expect" "$plain" >&2; return 1; }
+}
+egg_check default respawn
+egg_check hearth rekindles
+egg_check glow 1UP
+egg_check scrubs defib
+
 echo
 echo "All dispatch tests passed."
