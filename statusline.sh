@@ -107,6 +107,40 @@ now_ms() {
   printf '%d' $(( $(date +%s) * 1000 ))
 }
 
+# Gradient band swept across TEXT, colored from the active theme's SWEEP_RAMP
+# (base mid peak). Each character emits an EXPLICIT SGR so the peak color cannot
+# bleed into following base characters (empty base -> emit reset). ANSI-stripped
+# output equals TEXT exactly.
+sweep() {
+  local text=$1
+  local n=${#text}
+  (( n == 0 )) && return
+  # Pegged: the name "dies" — frozen, dim, no motion.
+  if limit_pegged; then
+    printf '\033[2m%s\033[0m' "$text"
+    return
+  fi
+  local base=${SWEEP_RAMP[0]} mid=${SWEEP_RAMP[1]} peak=${SWEEP_RAMP[2]}
+  local period=2200 pad=4
+  local ms; ms=$(now_ms)
+  local center=$(( (ms % period) * (n + pad) / period - pad / 2 ))
+  local i d sgr char
+  for (( i = 0; i < n; i++ )); do
+    d=$(( i - center )); (( d < 0 )) && d=$(( -d ))
+    if   (( d == 0 )); then sgr=$peak
+    elif (( d == 1 )); then sgr=$mid
+    else                    sgr=$base
+    fi
+    char=${text:i:1}
+    if [[ -n "$sgr" ]]; then
+      printf '\033[%sm%s' "$sgr" "$char"
+    else
+      printf '\033[0m%s' "$char"
+    fi
+  done
+  printf '\033[0m'
+}
+
 # ============================================================================
 # Theme: default — today's look (preserved exactly)
 # ============================================================================
