@@ -59,6 +59,12 @@ for t in hearth glow scrubs; do
   [[ -n "$EGG_RESET_WORD" ]]    && ok "theme_$t: egg word" || bad "theme_$t: egg word"
 done
 
+theme_hearth
+[[ "$CIRCLE_SGR" == "38;5;214" ]] && ok "hearth: CIRCLE_SGR amber" || bad "hearth: CIRCLE_SGR ('$CIRCLE_SGR')"
+[[ "$LABEL_SGR" == "" ]] && ok "hearth: LABEL_SGR plain" || bad "hearth: LABEL_SGR ('$LABEL_SGR')"
+theme_default
+[[ "$CIRCLE_SGR" == "@tier" ]] && ok "default: CIRCLE_SGR @tier" || bad "default: CIRCLE_SGR ('$CIRCLE_SGR')"
+
 echo
 if (( fails )); then echo "unit: $fails FAILED"; exit 1; fi
 echo "All unit tests passed."

@@ -153,6 +153,8 @@ theme_default() {            # basic ANSI, faithful to the original look
   SEP=' │ '; SEP_COLOR=''
   META=''                                      # reset/size inherit tier color
   SEG_CIRCLE=0; LABEL_SEP=':'
+  # '@tier' sentinel: circle/label color tracks the value's tier color (all-one-span).
+  CIRCLE_SGR='@tier'; LABEL_SGR='@tier'
   EGG_GLYPH=''; EGG_GLYPH_COLOR=''
   EGG_MSG_A='100% 💀'; EGG_COLOR_A=31
   EGG_MSG_B='100% 💀'; EGG_COLOR_B=31          # equal -> no flash
@@ -165,6 +167,7 @@ theme_hearth() {             # warm amber, restrained (silent calm/warn)
   SEP=' · '; SEP_COLOR=2
   META='2;3'                                   # dim italic
   SEG_CIRCLE=1; LABEL_SEP=''
+  CIRCLE_SGR='38;5;214'; LABEL_SGR=''
   EGG_GLYPH='○'; EGG_GLYPH_COLOR=2
   EGG_MSG_A='burnt out'; EGG_COLOR_A='1;38;5;196'
   EGG_MSG_B='burnt out'; EGG_COLOR_B='1;38;5;196'
@@ -177,6 +180,7 @@ theme_glow() {               # pink neon arcade
   SEP=' · '; SEP_COLOR=2
   META='3;38;5;175'                            # italic rose
   SEG_CIRCLE=1; LABEL_SEP=''
+  CIRCLE_SGR='@tier'; LABEL_SGR='@tier'
   EGG_GLYPH=''; EGG_GLYPH_COLOR=''
   EGG_MSG_A='GAME OVER';   EGG_COLOR_A='1;38;5;197'
   EGG_MSG_B='INSERT COIN'; EGG_COLOR_B='1;38;5;199'   # flashes
@@ -189,6 +193,7 @@ theme_scrubs() {             # clinical teal vitals monitor
   SEP=' · '; SEP_COLOR=2
   META='3;38;5;152'                            # italic light teal
   SEG_CIRCLE=1; LABEL_SEP=''
+  CIRCLE_SGR='@tier'; LABEL_SGR='@tier'
   EGG_GLYPH=''; EGG_GLYPH_COLOR=''
   EGG_MSG_A='CODE BLUE';      EGG_COLOR_A='1;38;5;196'
   EGG_MSG_B='▁▁▁▁▁▁▁▁▁';      EGG_COLOR_B='1;38;5;196'   # flashes (text <-> flat trace)
@@ -223,38 +228,56 @@ tier_color() {
 # (so default's reset times / size label match the value color, as before).
 meta_sgr() { if [[ -n "$META" ]]; then printf '%s' "$META"; else printf '%s' "$1"; fi; }
 
-# A rate segment (5h / week): "[circle ]label<sep> pct% (->reset)" or the egg.
+# Resolve a span-color spec against the value's tier color: '@tier' -> tier,
+# anything else (including '' = default fg) is used literally.
+span_sgr() { if [[ "$1" == '@tier' ]]; then printf '%s' "$2"; else printf '%s' "$1"; fi; }
+
+# A rate segment (5h / week). Circle, label, and value are painted as separate
+# spans so each can take its own color (hearth: amber circle, plain label,
+# tier value; others: all tier). Falls through to the easter egg at 100%.
 seg_rate() {
   local label=$1 pctraw=$2 reset_str=$3
   local pct=${pctraw%.*}
   if (( pct >= 100 )); then egg "$label" "$reset_str"; return; fi
   local tier; tier=$(tier_color "$pct")
-  local circle=''
-  (( SEG_CIRCLE )) && circle="$(ctx_circle "$pct") "
-  paint "$tier" "${circle}${label}${LABEL_SEP} ${pct}%"
+  if (( SEG_CIRCLE )); then
+    paint "$(span_sgr "$CIRCLE_SGR" "$tier")" "$(ctx_circle "$pct")"; printf ' '
+  fi
+  paint "$(span_sgr "$LABEL_SGR" "$tier")" "${label}${LABEL_SEP}"
   printf ' '
-  paint "$(meta_sgr "$tier")" "(→${reset_str})"
+  paint "$tier" "${pct}%"
+  printf ' '
+  paint "$(meta_sgr '')" "(→${reset_str})"
 }
 
-# The context segment: always circled, no label / reset / egg.
+# The context segment: always circled, no label / reset / egg. Circle uses
+# CIRCLE_SGR (hearth: amber; others: tier); value uses tier; size uses META
+# (or tier when META is empty, matching default's original look).
 seg_ctx() {
   local pctraw=$1 size=$2
   local pct=${pctraw%.*}
   local tier; tier=$(tier_color "$pct")
-  paint "$tier" "$(ctx_circle "$pct") ${pct}%"
+  paint "$(span_sgr "$CIRCLE_SGR" "$tier")" "$(ctx_circle "$pct")"; printf ' '
+  paint "$tier" "${pct}%"
   [[ -n "$size" ]] && paint "$(meta_sgr "$tier")" "$size"
 }
 
 # 100% easter egg for a rate segment. Flashes A<->B per second when they differ.
+# The label is colored like the message EXCEPT when LABEL_SGR is empty (hearth),
+# where it stays default-fg. The reset clause uses META, or plain when META is
+# empty (default), matching the originals.
 egg() {
-  local label=$1 reset_str=$2 msg col
+  local label=$1 reset_str=$2 msg col lblcol
   if (( $(date +%s) % 2 )) && [[ "$EGG_MSG_A" != "$EGG_MSG_B" ]]; then
     msg=$EGG_MSG_B; col=$EGG_COLOR_B
   else
     msg=$EGG_MSG_A; col=$EGG_COLOR_A
   fi
   [[ -n "$EGG_GLYPH" ]] && printf '\033[%sm%s\033[0m ' "$EGG_GLYPH_COLOR" "$EGG_GLYPH"
-  paint "$col" "${label}${LABEL_SEP} ${msg}"
+  if [[ -n "$LABEL_SGR" ]]; then lblcol=$col; else lblcol=''; fi
+  paint "$lblcol" "${label}${LABEL_SEP}"
+  printf ' '
+  paint "$col" "$msg"
   printf ' '
   if [[ -n "$META" ]]; then
     paint "$META" "(${EGG_RESET_WORD} →${reset_str})"
