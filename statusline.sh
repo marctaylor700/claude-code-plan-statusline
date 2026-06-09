@@ -3,10 +3,13 @@
 # Reads Claude Code's statusline JSON from stdin — no network, no auth, just jq.
 # Requires Claude Code v2.1.80+ (when rate_limits was added to statusline stdin).
 #
-# Themes: select via ~/.claude/plan-statusline.conf, e.g.:
-#   theme=default   # today's look (the safe one)
-#   theme=hearth    # warm amber, pulsing sparkle, model-name shimmer
-#   theme=glow      # bold bright neon-style, animated sparkle
+# Every theme gradient-sweeps the model name in its own palette (a bright band
+# drifts across the characters with real time). Select via
+# ~/.claude/plan-statusline.conf, e.g.:
+#   theme=default   # basic ANSI; restrained white sweep on the name
+#   theme=hearth    # warm amber, fixed-amber circles, silent until 70%
+#   theme=glow      # pink neon arcade, mint→magenta tier ramp
+#   theme=scrubs    # clinical teal vitals monitor
 # Missing or invalid theme → default.
 
 set -uo pipefail
