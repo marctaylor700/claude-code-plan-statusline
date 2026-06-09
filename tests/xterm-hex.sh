@@ -14,10 +14,16 @@ set -euo pipefail
 
 steps=(0 95 135 175 215 255)
 
+# sRGB hex for an xterm-256 index: 16-231 color cube, 232-255 grayscale ramp.
 cube_hex() {
   local n=$1
-  if (( n < 16 || n >= 232 )); then
-    printf 'cube-only (16-231): %s\n' "$n" >&2
+  if (( n >= 232 && n <= 255 )); then
+    local L=$(( 8 + (n - 232) * 10 ))
+    printf '#%02x%02x%02x' "$L" "$L" "$L"
+    return
+  fi
+  if (( n < 16 || n > 231 )); then
+    printf 'unsupported index (16-255): %s\n' "$n" >&2
     return 1
   fi
   local cube=$((n - 16))
