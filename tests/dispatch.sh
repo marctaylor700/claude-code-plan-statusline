@@ -145,5 +145,12 @@ he=$(raw_render hearth 100)
 [[ "$he" == *"5h ${ESC2}[1;38;5;196mburnt out"* ]] && printf 'PASS hearth egg plain label\n' \
   || { printf 'FAIL hearth egg label should be plain\n  got: %s\n' "$he" >&2; exit 1; }
 
+# Pegged state flows through the real dispatch -> render_line -> egg (stable reset words).
+assert_renders default "$PEGGED" "respawn"
+assert_renders hearth  "$PEGGED" "rekindles"
+assert_renders glow    "$PEGGED" "1UP"
+assert_renders scrubs  "$PEGGED" "defib"
+assert_renders default "$PEGGED" "100% 💀"
+
 echo
 echo "All dispatch tests passed."

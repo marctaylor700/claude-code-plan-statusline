@@ -20,7 +20,7 @@ out=$(source ./statusline.sh </dev/null)
 source ./statusline.sh </dev/null
 
 # After sourcing, helper functions exist.
-declare -F render_default >/dev/null && ok "source: functions defined" \
+declare -F render_line >/dev/null && ok "source: functions defined" \
   || bad "source: functions defined"
 
 # now_ms returns integer milliseconds, sane magnitude (> year 2001 in ms).
