@@ -69,7 +69,7 @@ Since Claude Code v2.1.80, the statusline command receives a JSON blob on stdin 
 }
 ```
 
-The script reads that with `jq`, picks the percentages and reset epochs, color-formats them, and prints. No network. No auth. ~100 lines of bash.
+The script reads that with `jq`, picks the percentages and reset epochs, color-formats them, and prints. No network. No auth. One data-driven renderer feeds every theme.
 
 The `rate_limits` field only appears for Pro/Max subscribers, and only after the first API response in a session. Before then the script prints `usage data pending - make a request`.
 
