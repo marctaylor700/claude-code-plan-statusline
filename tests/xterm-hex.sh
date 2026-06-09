@@ -34,12 +34,14 @@ if (( $# > 0 )); then
   exit 0
 fi
 
-printf 'glow:\n'
-for n in 41 175 197 199 205; do
-  printf '  %3d → %s\n' "$n" "$(cube_hex "$n")"
-done
+printf 'default (tiers 208; ramp 252,255):\n'
+for n in 208 252 255; do printf '  %3d → %s\n' "$n" "$(cube_hex "$n")"; done
 
-printf '\nhearth:\n'
-for n in 196 208 214; do
-  printf '  %3d → %s\n' "$n" "$(cube_hex "$n")"
-done
+printf '\nhearth (tiers 208,196; ramp 214,221,230):\n'
+for n in 208 196 214 221 230; do printf '  %3d → %s\n' "$n" "$(cube_hex "$n")"; done
+
+printf '\nglow (tiers 41,205,199,197; ramp 205,199,231; meta 175):\n'
+for n in 41 205 199 197 231 175; do printf '  %3d → %s\n' "$n" "$(cube_hex "$n")"; done
+
+printf '\nscrubs (tiers 30,37,214,196; ramp 30,37,159; meta 152):\n'
+for n in 30 37 214 196 159 152; do printf '  %3d → %s\n' "$n" "$(cube_hex "$n")"; done
