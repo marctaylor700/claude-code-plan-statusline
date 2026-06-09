@@ -15,7 +15,7 @@ All three percentages share the same color scale: green → yellow → orange �
 
 ## Themes
 
-Three themes ship in the box. Pick one by creating `~/.claude/plan-statusline.conf`:
+Four themes ship in the box. Pick one by creating `~/.claude/plan-statusline.conf`:
 
 ```
 theme=hearth
@@ -25,10 +25,12 @@ No restart needed — the statusline reads the config on every refresh, so the n
 
 | Theme    | What it looks like                                                                    |
 |----------|---------------------------------------------------------------------------------------|
-| `default`| Today's look — basic ANSI colors, pipe separators, single circle on context.          |
-| `hearth` | Warm amber, restrained. Pulsing sparkle prefixes the model name and a "shimmer" character drifts across it between renders. Dim italic reset times. |
-| `glow`   | Pink neon arcade. Magenta sparkle, mint→pink→magenta→red tier ramp through the pink spectrum, italic rose halo on every reset time. Two-hue palette, no warm clutter. |
-| `scrubs` | Clinical teal vitals monitor. A health-cross "heartbeat" pulses by the model name; surgical-teal calm state ramps teal→bright-teal→amber→red like a patient monitor. Soft light-teal halo on reset times. |
+| `default`| Basic ANSI colors, pipe separators, single circle on context. The model name carries a restrained white highlight that sweeps across it. |
+| `hearth` | Warm amber, restrained. The model name gradient-sweeps amber→gold; tier color stays silent until 70% (orange) / 90% (red). Dim italic reset times. |
+| `glow`   | Pink neon arcade. Model name sweeps pink→magenta→white-hot; mint→pink→magenta→red tier ramp; italic rose halo on reset times. |
+| `scrubs` | Clinical teal vitals monitor. Model name sweeps teal→bright-teal→pale-cyan; teal→bright→amber→red tier ramp like a patient monitor; soft light-teal halo on reset times. |
+
+The model name is animated: a bright band sweeps across it continuously, in each theme's palette. The sweep is smoothest when a millisecond clock is available (`bash` 5+, GNU `date`, `perl`, or `python3` — `perl` ships with macOS); with none of those it falls back to a per-second step. At 100% usage the sweep freezes and the name dims.
 
 If the file is missing or the theme name is unrecognized, the script falls back to `default` — your prior install keeps working untouched.
 
