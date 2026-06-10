@@ -17,8 +17,8 @@ mkdir -p "$TMP/.claude"
 ESC=$(printf '\033')
 
 # Strip CSI escape sequences (\033[...m) so substring matching works across
-# themes that interleave ANSI codes inside the model name (e.g. hearth's
-# shimmer bolds one character per second, breaking the literal "Opus 4.8").
+# the colored segments (model name, tier-colored values, separators) without
+# tripping on the SGR codes interleaved between them.
 strip_ansi() { sed -E "s/${ESC}\[[0-9;]*m//g"; }
 
 assert_renders() {

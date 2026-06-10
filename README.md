@@ -25,12 +25,12 @@ No restart needed — the statusline reads the config on every refresh, so the n
 
 | Theme    | What it looks like                                                                    |
 |----------|---------------------------------------------------------------------------------------|
-| `default`| Basic ANSI colors, pipe separators, single circle on context. The model name carries a restrained white highlight that sweeps across it. |
-| `hearth` | Warm amber, restrained. The model name gradient-sweeps amber→gold; tier color stays silent until 70% (orange) / 90% (red). Dim italic reset times. |
-| `glow`   | Pink neon arcade. Model name sweeps pink→magenta→white-hot; mint→pink→magenta→red tier ramp; italic rose halo on reset times. |
-| `scrubs` | Clinical teal vitals monitor. Model name sweeps teal→bright-teal→pale-cyan; teal→bright→amber→red tier ramp like a patient monitor; soft light-teal halo on reset times. |
+| `default`| Basic ANSI colors, pipe separators, single circle on context. Bold model name. |
+| `hearth` | Warm amber, restrained. Bold-amber model name; tier color stays silent until 70% (orange) / 90% (red). Dim italic reset times. |
+| `glow`   | Pink neon arcade. Bold-magenta model name; mint→pink→magenta→red tier ramp; italic rose halo on reset times. |
+| `scrubs` | Clinical teal vitals monitor. Bold bright-teal model name; teal→bright→amber→red tier ramp like a patient monitor; soft light-teal halo on reset times. |
 
-The model name is animated: a bright band sweeps across it continuously, in each theme's palette. The sweep is smoothest when a millisecond clock is available (`bash` 5+, GNU `date`, `perl`, or `python3` — `perl` ships with macOS); with none of those it falls back to a per-second step. At 100% usage the sweep freezes and the name dims.
+The model name renders in each theme's solid color. At 100% usage (plan limits only) it dims as part of the easter-egg state. It's static, not animated — Claude Code repaints the statusline at most once per second, far too coarse for smooth motion.
 
 If the file is missing or the theme name is unrecognized, the script falls back to `default` — your prior install keeps working untouched.
 

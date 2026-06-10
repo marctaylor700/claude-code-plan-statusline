@@ -23,37 +23,39 @@ source ./statusline.sh </dev/null
 declare -F render_line >/dev/null && ok "source: functions defined" \
   || bad "source: functions defined"
 
-# now_ms returns integer milliseconds, sane magnitude (> year 2001 in ms).
-ms=$(now_ms)
-[[ "$ms" =~ ^[0-9]+$ ]] && ok "now_ms: integer ($ms)" || bad "now_ms: integer (got '$ms')"
-(( ms > 1000000000000 )) && ok "now_ms: magnitude" || bad "now_ms: magnitude ($ms)"
-
-# sweep must preserve the text exactly once ANSI is stripped (no dropped/dup
-# chars), for any ramp. Set rate vars so limit_pegged works under `set -u`.
+# render_name draws the model name as ONE solid span; ANSI-stripped output
+# equals the text exactly. Set rate vars so limit_pegged works under `set -u`.
 five_pct=''; week_pct=''
-SWEEP_RAMP=( '' '38;5;252' '1;38;5;255' )   # default-style ramp
-got=$(sweep 'Opus 4.8' | strip_ansi)
-[[ "$got" == "Opus 4.8" ]] && ok "sweep: preserves text" || bad "sweep: preserves text (got '$got')"
-[[ -z "$(sweep '')" ]] && ok "sweep: empty -> empty" || bad "sweep: empty -> empty"
-[[ "$(sweep 'X' | strip_ansi)" == "X" ]] && ok "sweep: single char" || bad "sweep: single char"
+NAME_SGR='1;38;5;255'
+got=$(render_name 'Opus 4.8' | strip_ansi)
+[[ "$got" == "Opus 4.8" ]] && ok "render_name: preserves text" || bad "render_name: preserves text (got '$got')"
+[[ -z "$(render_name '')" ]] && ok "render_name: empty -> empty" || bad "render_name: empty -> empty"
+[[ "$(render_name 'X' | strip_ansi)" == "X" ]] && ok "render_name: single char" || bad "render_name: single char"
 
-SWEEP_RAMP=( '38;5;214' '38;5;221' '1;38;5;230' )   # non-empty base ramp
-[[ "$(sweep 'Opus 4.8' | strip_ansi)" == "Opus 4.8" ]] && ok "sweep: non-empty base preserves text" || bad "sweep: non-empty base"
+# Solid color = single opening SGR + text + reset (no per-character spans).
+NAME_SGR='1;38;5;214'
+[[ "$(render_name 'Opus 4.8')" == $'\033[1;38;5;214mOpus 4.8\033[0m' ]] \
+  && ok "render_name: single solid span" || bad "render_name: single span (got '$(render_name 'Opus 4.8')')"
 
-# Pegged: name freezes dim, still preserves text.
-five_pct=100
-[[ "$(sweep 'Opus 4.8' | strip_ansi)" == "Opus 4.8" ]] && ok "sweep: pegged preserves text" || bad "sweep: pegged"
+# Empty NAME_SGR -> plain text (terminal default fg).
+NAME_SGR=''
+[[ "$(render_name 'Opus 4.8')" == "Opus 4.8" ]] && ok "render_name: empty color plain" || bad "render_name: empty color"
+
+# Pegged: name dims (static), still preserves text exactly.
+five_pct=100; NAME_SGR='1;38;5;214'
+[[ "$(render_name 'Opus 4.8' | strip_ansi)" == "Opus 4.8" ]] && ok "render_name: pegged preserves text" || bad "render_name: pegged"
+[[ "$(render_name 'Opus 4.8')" == $'\033[2mOpus 4.8\033[0m' ]] && ok "render_name: pegged dims" || bad "render_name: pegged dims"
 five_pct=''
 
 # ── theme loaders ────────────────────────────────────────────────────────────
 theme_default
 [[ "$LABEL_SEP" == ":" ]] && ok "theme_default: LABEL_SEP" || bad "theme_default: LABEL_SEP ('$LABEL_SEP')"
 [[ "$SEG_CIRCLE" == "0" ]] && ok "theme_default: SEG_CIRCLE" || bad "theme_default: SEG_CIRCLE"
-[[ ${#SWEEP_RAMP[@]} -eq 3 ]] && ok "theme_default: ramp len" || bad "theme_default: ramp len"
+[[ -n "$NAME_SGR" ]] && ok "theme_default: NAME_SGR set" || bad "theme_default: NAME_SGR"
 
 for t in hearth glow scrubs; do
   "theme_$t"
-  [[ ${#SWEEP_RAMP[@]} -eq 3 ]] && ok "theme_$t: ramp len" || bad "theme_$t: ramp len"
+  [[ -n "$NAME_SGR" ]] && ok "theme_$t: NAME_SGR set" || bad "theme_$t: NAME_SGR"
   [[ "$LABEL_SEP" == "" ]]      && ok "theme_$t: LABEL_SEP empty" || bad "theme_$t: LABEL_SEP ('$LABEL_SEP')"
   [[ "$SEG_CIRCLE" == "1" ]]    && ok "theme_$t: SEG_CIRCLE" || bad "theme_$t: SEG_CIRCLE"
   [[ -n "$EGG_RESET_WORD" ]]    && ok "theme_$t: egg word" || bad "theme_$t: egg word"

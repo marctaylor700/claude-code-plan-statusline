@@ -3,10 +3,9 @@
 # Reads Claude Code's statusline JSON from stdin — no network, no auth, just jq.
 # Requires Claude Code v2.1.80+ (when rate_limits was added to statusline stdin).
 #
-# Every theme gradient-sweeps the model name in its own palette (a bright band
-# drifts across the characters with real time). Select via
+# Each theme renders the model name in its own solid color. Select via
 # ~/.claude/plan-statusline.conf, e.g.:
-#   theme=default   # basic ANSI; restrained white sweep on the name
+#   theme=default   # basic ANSI; bold name
 #   theme=hearth    # warm amber, fixed-amber circles, silent until 70%
 #   theme=glow      # pink neon arcade, mint→magenta tier ramp
 #   theme=scrubs    # clinical teal vitals monitor
@@ -91,70 +90,23 @@ limit_pegged() {
   { [[ -n "$week_pct" ]] && (( ${week_pct%.*} >= 100 )); }
 }
 
-# Milliseconds since epoch from the best available source. The statusline is a
-# fresh process per repaint, so the sweep position must come from wall-clock time.
-# Prefer sources that spawn no extra process; degrade to whole seconds last.
-now_ms() {
-  # bash 5+: EPOCHREALTIME = "seconds.microseconds" — no subprocess.
-  if [[ -n "${EPOCHREALTIME:-}" ]]; then
-    local er=${EPOCHREALTIME//,/.}        # normalize locale radix (de_DE etc.)
-    local s=${er%.*} us=${er#*.}
-    us=${us}000000; us=${us:0:6}
-    printf '%d' $(( 10#$s * 1000 + 10#$us / 1000 ))
-    return
-  fi
-  # GNU date and modern macOS date emit nanoseconds; older BSD date prints a
-  # literal 'N' -> the digit regex gates it either way.
-  local ns
-  ns=$(date +%s%N 2>/dev/null)
-  if [[ "$ns" =~ ^[0-9]+$ ]]; then
-    printf '%d' $(( ns / 1000000 ))
-    return
-  fi
-  # perl (preinstalled on macOS).
-  if command -v perl >/dev/null 2>&1; then
-    perl -MTime::HiRes -e 'printf "%d", Time::HiRes::time()*1000' && return
-  fi
-  # python3.
-  if command -v python3 >/dev/null 2>&1; then
-    python3 -c 'import time;print(int(time.time()*1000))' && return
-  fi
-  # Last resort: whole seconds.
-  printf '%d' $(( $(date +%s) * 1000 ))
-}
-
-# Gradient band swept across TEXT, colored from the active theme's SWEEP_RAMP
-# (base mid peak). Each character emits an EXPLICIT SGR so the peak color cannot
-# bleed into following base characters (empty base -> emit reset). ANSI-stripped
-# output equals TEXT exactly.
-sweep() {
+# Render the model name in the theme's solid NAME_SGR (empty -> terminal default
+# fg). One opening SGR for the whole string, so the name is a single clean span.
+# At 100% plan usage the name "dies": dimmed, matching each theme's pegged
+# easter-egg state. (The statusline repaints at most ~1×/sec, far too coarse for
+# smooth motion, so the name is static rather than animated.)
+render_name() {
   local text=$1
-  local n=${#text}
-  (( n == 0 )) && return
-  # Pegged: the name "dies" — frozen, dim, no motion.
+  (( ${#text} == 0 )) && return
   if limit_pegged; then
     printf '\033[2m%s\033[0m' "$text"
     return
   fi
-  local base=${SWEEP_RAMP[0]} mid=${SWEEP_RAMP[1]} peak=${SWEEP_RAMP[2]}
-  local period=2200 pad=4
-  local ms; ms=$(now_ms)
-  local center=$(( (ms % period) * (n + pad) / period - pad / 2 ))
-  local i d sgr char
-  for (( i = 0; i < n; i++ )); do
-    d=$(( i - center )); (( d < 0 )) && d=$(( -d ))
-    if   (( d == 0 )); then sgr=$peak
-    elif (( d == 1 )); then sgr=$mid
-    else                    sgr=$base
-    fi
-    char=${text:i:1}
-    if [[ -n "$sgr" ]]; then
-      printf '\033[%sm%s' "$sgr" "$char"
-    else
-      printf '\033[0m%s' "$char"
-    fi
-  done
-  printf '\033[0m'
+  if [[ -n "$NAME_SGR" ]]; then
+    printf '\033[%sm%s\033[0m' "$NAME_SGR" "$text"
+  else
+    printf '%s' "$text"
+  fi
 }
 
 # ============================================================================
@@ -165,7 +117,7 @@ sweep() {
 
 theme_default() {            # basic ANSI, faithful to the original look
   TIER_CALM=32; TIER_WARN=33; TIER_HOT='38;5;208'; TIER_URGENT=31
-  SWEEP_RAMP=( '' '38;5;252' '1;38;5;255' )   # plain -> grey -> bold white band
+  NAME_SGR='1'                                # bold, terminal default fg
   SEP=' │ '; SEP_COLOR=''
   META=''                                      # reset/size inherit tier color
   SEG_CIRCLE=0; LABEL_SEP=':'
@@ -179,7 +131,7 @@ theme_default() {            # basic ANSI, faithful to the original look
 
 theme_hearth() {             # warm amber, restrained (silent calm/warn)
   TIER_CALM=''; TIER_WARN=''; TIER_HOT='38;5;208'; TIER_URGENT='1;38;5;196'
-  SWEEP_RAMP=( '38;5;214' '38;5;221' '1;38;5;230' )   # amber -> gold -> pale gold
+  NAME_SGR='1;38;5;214'                               # bold amber
   SEP=' · '; SEP_COLOR=2
   META='2;3'                                   # dim italic
   SEG_CIRCLE=1; LABEL_SEP=''
@@ -192,7 +144,7 @@ theme_hearth() {             # warm amber, restrained (silent calm/warn)
 
 theme_glow() {               # pink neon arcade
   TIER_CALM='1;38;5;41'; TIER_WARN='1;38;5;205'; TIER_HOT='1;38;5;199'; TIER_URGENT='1;38;5;197'
-  SWEEP_RAMP=( '1;38;5;205' '1;38;5;199' '1;38;5;231' )   # pink -> magenta -> white-hot
+  NAME_SGR='1;38;5;199'                                   # bold magenta
   SEP=' · '; SEP_COLOR=2
   META='3;38;5;175'                            # italic rose
   SEG_CIRCLE=1; LABEL_SEP=''
@@ -205,7 +157,7 @@ theme_glow() {               # pink neon arcade
 
 theme_scrubs() {             # clinical teal vitals monitor
   TIER_CALM='38;5;30'; TIER_WARN='1;38;5;37'; TIER_HOT='38;5;214'; TIER_URGENT='1;38;5;196'
-  SWEEP_RAMP=( '38;5;30' '38;5;37' '1;38;5;159' )   # teal -> bright teal -> pale cyan
+  NAME_SGR='1;38;5;37'                              # bold bright teal
   SEP=' · '; SEP_COLOR=2
   META='3;38;5;152'                            # italic light teal
   SEG_CIRCLE=1; LABEL_SEP=''
@@ -328,12 +280,12 @@ render_line() {
 
   # Nothing to show yet (fresh session, before the first API response).
   if [[ -z "$ctx_pct" && -z "$five_pct" && -z "$week_pct" && -z "$cost_usd" ]]; then
-    sweep "$model"; paint_sep
+    render_name "$model"; paint_sep
     paint "$META" 'usage data pending - make a request'
     return
   fi
 
-  sweep "$model"
+  render_name "$model"
 
   if [[ -n "$five_pct" || -n "$week_pct" ]]; then
     # Plan mode (Pro/Max): rolling rate-limit windows.
