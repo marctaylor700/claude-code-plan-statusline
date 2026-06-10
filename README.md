@@ -73,6 +73,16 @@ The script reads that with `jq`, picks the percentages and reset epochs, color-f
 
 The `rate_limits` field only appears for Pro/Max subscribers, and only after the first API response in a session. Before then the script prints `usage data pending - make a request`.
 
+### On Enterprise / managed plans
+
+Managed and Enterprise deployments don't get a `rate_limits` block at all — there are no rolling plan windows to show. Instead of leaving the statusline blank, the script auto-detects this and falls back to a **session dashboard** built from the data those payloads *do* carry:
+
+```
+Opus 4.8 (1M context) │ $1.01 │ 2m16s │ +1/-0 │ 63k↑ 248↓ │ ○ 6% of 1M
+```
+
+Reading left to right: **session cost** (API-equivalent USD, `cost.total_cost_usd`), **wall-clock duration**, **lines changed**, **tokens in ↑ / out ↓**, and the same context circle. Cost carries the green→red tier scale (green `<$2`, yellow `≥$2`, orange `≥$5`, red `≥$10` — tunable constants in `cost_tier_color`); the rest are informational and render dimmed in each theme. Detection is automatic and needs no config: if rate limits are present you get the `5h`/`week` view above, otherwise the dashboard. The same script serves both.
+
 ## Install
 
 ### Easiest: let Claude Code install it for you
