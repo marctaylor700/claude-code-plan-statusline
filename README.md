@@ -142,6 +142,10 @@ bash tests/dispatch.sh    # theme dispatch + render faithfulness across themes
 bash tests/enterprise.sh  # Enterprise fallback + plan/enterprise mode exclusivity
 ```
 
+## Acknowledgments
+
+The opt-in theme system, its data-driven render engine, and Enterprise/managed-plan support were contributed by [**@marctaylor700**](https://github.com/marctaylor700).
+
 ## License
 
 MIT
