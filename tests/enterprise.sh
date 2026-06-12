@@ -4,7 +4,7 @@
 # (cost · duration · lines · tokens · context) instead of the nonexistent
 # 5h / week plan windows. Plan-mode (Pro/Max) rendering must be unchanged.
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || exit 1
 
 ESC=$(printf '\033')
 strip_ansi() { sed -E "s/${ESC}\[[0-9;]*m//g"; }

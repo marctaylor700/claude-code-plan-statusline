@@ -1,0 +1,78 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  bash:
+    name: bash tests (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      # jq ships preinstalled on all three GitHub runner images.
+      # On windows-latest this exercises the Git Bash route — the shell Claude
+      # Code prefers on Windows when Git is installed.
+      - name: unit
+        shell: bash
+        run: bash tests/unit.sh
+      - name: dispatch
+        shell: bash
+        run: bash tests/dispatch.sh
+      - name: enterprise
+        shell: bash
+        run: bash tests/enterprise.sh
+      - name: robustness
+        shell: bash
+        run: bash tests/robustness.sh
+      - name: missing jq
+        if: runner.os != 'Windows'
+        shell: bash
+        run: bash tests/test_missing_jq.sh
+
+  powershell:
+    name: PowerShell tests (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: ps-tests under pwsh 7
+        shell: pwsh
+        run: ./tests/ps-tests.ps1
+      - name: ps-tests under Windows PowerShell 5.1
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: ./tests/ps-tests.ps1
+      - name: statusline.ps1 keeps its UTF-8 BOM
+        shell: bash
+        run: |
+          head -c 3 statusline.ps1 | od -An -tx1 | grep -qi 'ef bb bf' \
+            || { echo "statusline.ps1 lost its UTF-8 BOM (PS 5.1 would garble the glyphs)"; exit 1; }
+
+  crosscheck:
+    name: bash vs PowerShell byte parity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # pwsh and jq are both preinstalled on ubuntu-latest.
+      - run: bash tests/crosscheck.sh
+
+  shellcheck:
+    name: shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Per-file invocation: shellcheck 0.11 has an internal crash
+      # (Analytics.hs checkCmd) when fed some of these files together.
+      - run: |
+          for f in statusline.sh tests/*.sh; do
+            shellcheck -S warning "$f"
+          done

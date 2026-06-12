@@ -2,7 +2,7 @@
 # Unit tests for sourceable helpers in statusline.sh.
 # Sourcing must NOT block on stdin and must NOT render — only define functions.
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || exit 1
 
 ESC=$(printf '\033')
 strip_ansi() { sed -E "s/${ESC}\[[0-9;]*m//g"; }
@@ -25,7 +25,10 @@ declare -F render_line >/dev/null && ok "source: functions defined" \
 
 # render_name draws the model name as ONE solid span; ANSI-stripped output
 # equals the text exactly. Set rate vars so limit_pegged works under `set -u`.
-five_pct=''; week_pct=''
+# shellcheck disable=SC2034  # consumed by the sourced limit_pegged()
+five_pct=''
+# shellcheck disable=SC2034  # consumed by the sourced limit_pegged()
+week_pct=''
 NAME_SGR='1;38;5;255'
 got=$(render_name 'Opus 4.8' | strip_ansi)
 [[ "$got" == "Opus 4.8" ]] && ok "render_name: preserves text" || bad "render_name: preserves text (got '$got')"
@@ -45,6 +48,7 @@ NAME_SGR=''
 five_pct=100; NAME_SGR='1;38;5;214'
 [[ "$(render_name 'Opus 4.8' | strip_ansi)" == "Opus 4.8" ]] && ok "render_name: pegged preserves text" || bad "render_name: pegged"
 [[ "$(render_name 'Opus 4.8')" == $'\033[2mOpus 4.8\033[0m' ]] && ok "render_name: pegged dims" || bad "render_name: pegged dims"
+# shellcheck disable=SC2034  # reset for later checks
 five_pct=''
 
 # ── theme loaders ────────────────────────────────────────────────────────────
