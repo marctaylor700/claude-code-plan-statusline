@@ -74,7 +74,11 @@ Start a new Claude Code session and make a request — the statusline appears at
 
 ### Manual install — Windows (native PowerShell)
 
-No dependencies: `statusline.ps1` is a line-for-line port of the bash version using only PowerShell 5.1+ built-ins. In a PowerShell window:
+No dependencies: `statusline.ps1` is a line-for-line port of the bash version using only PowerShell 5.1+ built-ins.
+
+**Easiest:** [download the repo as a ZIP](https://github.com/blazemalan/claude-code-plan-statusline/archive/refs/heads/main.zip), extract it, and double-click `install-windows.bat`. It copies the script into place, updates your Claude Code settings (backing them up first), and shows a live preview of your statusline. Done.
+
+**Or by hand** — in a PowerShell window:
 
 ```powershell
 New-Item -ItemType Directory -Force "$env:USERPROFILE\.claude\hooks" | Out-Null
@@ -177,12 +181,4 @@ pwsh tests/ps-tests.ps1   # the PowerShell port (also runs under powershell 5.1)
 bash tests/crosscheck.sh  # byte-for-byte bash vs PowerShell diff on every fixture × theme
 ```
 
-Both scripts honor `PLAN_SL_NOW` (epoch override) so time-dependent output — the 100% easter-egg flash, the week reset's today-vs-weekday display — is reproducible in tests.
-
-## Acknowledgments
-
-The opt-in theme system, its data-driven render engine, and Enterprise/managed-plan support were contributed by [**@marctaylor700**](https://github.com/marctaylor700).
-
-## License
-
-MIT
+Both scripts honor `PLAN_SL_NOW` (epoc
