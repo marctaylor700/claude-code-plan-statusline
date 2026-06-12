@@ -60,14 +60,14 @@ foreach ($t in $sizeTests) {
 Pass "fmt_size"
 
 $circleTests = @(
-    @{in=100; out='●'}
-    @{in=88; out='●'}
-    @{in=63; out='◕'}
-    @{in=38; out='◑'}
-    @{in=13; out='◔'}
-    @{in=12; out='○'}
-    @{in=0; out='○'}
-    @{in='42.7'; out='◑'}
+    @{in=100; out=[char]0x25CF}
+    @{in=88; out=[char]0x25CF}
+    @{in=63; out=[char]0x25D5}
+    @{in=38; out=[char]0x25D1}
+    @{in=13; out=[char]0x25D4}
+    @{in=12; out=[char]0x25CB}
+    @{in=0; out=[char]0x25CB}
+    @{in='42.7'; out=[char]0x25D1}
 )
 foreach ($t in $circleTests) {
     $res = ctx_circle $t.in
@@ -132,7 +132,7 @@ function Run-E2E($json, $theme, $epoch, $tz) {
 $json = '{"model": {"display_name": "Claude"}, "rate_limits": {"five_hour": {"used_percentage": 42}}}'
 $res = Run-E2E $json 'hearth'
 if ($res.out -notmatch '\[1;38;5;214mClaude') { Fail "e2e hearth" "Model name not amber" }
-if ($res.out -notmatch '\[38;5;214m◑') { Fail "e2e hearth" "Circle not amber" }
+if ($res.out.Contains("[38;5;214m$([char]0x25D1)") -eq $false) { Fail "e2e hearth" "Circle not amber" }
 Pass "e2e hearth"
 
 # Default pending
