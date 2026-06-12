@@ -161,7 +161,7 @@ if ($res.out -notmatch '\$1\.01') { Fail "e2e enterprise" "No cost" }
 if ($res.out -notmatch '2m16s') { Fail "e2e enterprise" "No duration" }
 if ($res.out -notmatch '\+1/-0') { Fail "e2e enterprise" "No lines" }
 if ($res.out -notmatch '63k↑ 248↓') { Fail "e2e enterprise" "No tokens" }
-if ($res.out -notmatch '○.*6%*') { Fail "e2e enterprise" "No ctx" }
+if ($res.out.Contains("$([char]0x25CB)") -eq $false -or $res.out.Contains("6%") -eq $false) { Fail "e2e enterprise" "No ctx" }
 Pass "e2e enterprise"
 
 if ($script:Failed) {
