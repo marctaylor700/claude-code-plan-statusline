@@ -29,6 +29,14 @@ date_fmt() {
   date -r "$epoch" "$fmt" 2>/dev/null || date -d "@$epoch" "$fmt" 2>/dev/null
 }
 
+# "Now" as an epoch. PLAN_SL_NOW overrides for deterministic tests (the 100%
+# easter-egg flash and fmt_when's "is the reset today?" check both depend on
+# the current time; pinning it lets tests — and the bash<->PowerShell parity
+# cross-check — produce byte-stable output).
+now_epoch() {
+  printf '%s' "${PLAN_SL_NOW:-$(date +%s)}"
+}
+
 fmt_time() {
   local epoch=$1
   [[ -z "$epoch" ]] && return
@@ -70,7 +78,7 @@ fmt_duration() {
 fmt_when() {
   local epoch=$1
   [[ -z "$epoch" ]] && return
-  if [[ "$(date_fmt "$epoch" "+%Y-%m-%d")" == "$(date "+%Y-%m-%d")" ]]; then
+  if [[ "$(date_fmt "$epoch" "+%Y-%m-%d")" == "$(date_fmt "$(now_epoch)" "+%Y-%m-%d")" ]]; then
     fmt_time "$epoch"
   else
     date_fmt "$epoch" "+%a" | tr '[:upper:]' '[:lower:]'
@@ -257,7 +265,7 @@ seg_ctx() {
 # empty (default), matching the originals.
 egg() {
   local label=$1 reset_str=$2 msg col lblcol
-  if (( $(date +%s) % 2 )) && [[ "$EGG_MSG_A" != "$EGG_MSG_B" ]]; then
+  if (( $(now_epoch) % 2 )) && [[ "$EGG_MSG_A" != "$EGG_MSG_B" ]]; then
     msg=$EGG_MSG_B; col=$EGG_COLOR_B
   else
     msg=$EGG_MSG_A; col=$EGG_COLOR_A
@@ -361,8 +369,14 @@ main() {
       .cost.total_lines_removed // "",
       .context_window.total_input_tokens // "",
       .context_window.total_output_tokens // ""
-    ] | map(tostring) | join("\u001f")'
+    ] | map(tostring) | join("\u001f")' 2>/dev/null
   )
+
+  # Malformed / empty stdin: jq emits nothing (its parse error is suppressed
+  # above so it can't leak into the statusline), `read` leaves every field
+  # empty, and we'd render a leading separator with no name. Fall back to the
+  # same default name jq uses so the pending line stays well-formed.
+  [[ -z "$model" ]] && model='Claude'
 
   # --- Dispatch: load theme data, render once ---
   case "$theme" in
