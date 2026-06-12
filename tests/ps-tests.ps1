@@ -119,8 +119,8 @@ function Run-E2E($json, $theme, $epoch, $tz) {
 
     $out = ""
     $err = ""
-    try { $out = Get-Content $outFile -Raw } catch {}
-    try { $err = Get-Content $errFile -Raw } catch {}
+    try { $out = Get-Content $outFile -Raw -Encoding UTF8 } catch {}
+    try { $err = Get-Content $errFile -Raw -Encoding UTF8 } catch {}
     $exitCode = $proc.ExitCode
 
     Remove-Item -Recurse -Force $tempHome
