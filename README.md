@@ -1,5 +1,7 @@
 # claude-code-plan-statusline
 
+[![tests](https://github.com/blazemalan/claude-code-plan-statusline/actions/workflows/test.yml/badge.svg)](https://github.com/blazemalan/claude-code-plan-statusline/actions/workflows/test.yml)
+
 A tiny [Claude Code](https://www.anthropic.com/claude-code) statusline that keeps your **actual plan rate-limit usage** at the bottom of the terminal — the same numbers `/usage` reports, without typing `/usage`. No network calls, no auth, no dollar-cost guesswork.
 
 ![statusline screenshot](screenshot.png)
@@ -177,8 +179,4 @@ bash tests/unit.sh        # sourceable helpers (formatting, circles, name render
 bash tests/dispatch.sh    # theme dispatch + render faithfulness across themes
 bash tests/enterprise.sh  # Enterprise fallback + plan/enterprise mode exclusivity
 bash tests/robustness.sh  # malformed/partial stdin, config parsing, determinism hook
-pwsh tests/ps-tests.ps1   # the PowerShell port (also runs under powershell 5.1)
-bash tests/crosscheck.sh  # byte-for-byte bash vs PowerShell diff on every fixture × theme
-```
-
-Both scripts honor `PLAN_SL_NOW` (epoc
+pwsh tests/ps-tests.ps
