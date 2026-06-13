@@ -10,11 +10,19 @@
 #   theme=glow      # pink neon arcade, mint→magenta tier ramp
 #   theme=scrubs    # clinical teal vitals monitor
 # Missing or invalid theme → default.
+#
+# Honors NO_COLOR (https://no-color.org): if NO_COLOR is set to any non-empty
+# value, all ANSI color/style is suppressed; the line is plain text (glyphs and
+# layout unchanged).
 
 set -uo pipefail
 
 if ! command -v jq >/dev/null 2>&1; then
-  printf '\033[31mplan-statusline requires jq to parse data (e.g. brew install jq)\033[0m'
+  if [[ -n "${NO_COLOR:-}" ]]; then
+    printf 'plan-statusline requires jq to parse data (e.g. brew install jq)'
+  else
+    printf '\033[31mplan-statusline requires jq to parse data (e.g. brew install jq)\033[0m'
+  fi
   # Return successfully so we don't break the terminal statusline pipeline
   exit 0
 fi
@@ -112,6 +120,10 @@ limit_pegged() {
 render_name() {
   local text=$1
   (( ${#text} == 0 )) && return
+  if [[ -n "${NO_COLOR:-}" ]]; then
+    printf '%s' "$text"
+    return
+  fi
   if limit_pegged; then
     printf '\033[2m%s\033[0m' "$text"
     return
@@ -189,7 +201,7 @@ theme_scrubs() {             # clinical teal vitals monitor
 # Wrap TEXT in an SGR if non-empty (self-terminating); else print plain.
 paint() {
   local sgr=$1 text=$2
-  if [[ -n "$sgr" ]]; then printf '\033[%sm%s\033[0m' "$sgr" "$text"
+  if [[ -n "$sgr" && -z "${NO_COLOR:-}" ]]; then printf '\033[%sm%s\033[0m' "$sgr" "$text"
   else printf '%s' "$text"; fi
 }
 
@@ -270,7 +282,10 @@ egg() {
   else
     msg=$EGG_MSG_A; col=$EGG_COLOR_A
   fi
-  [[ -n "$EGG_GLYPH" ]] && printf '\033[%sm%s\033[0m ' "$EGG_GLYPH_COLOR" "$EGG_GLYPH"
+  if [[ -n "$EGG_GLYPH" ]]; then
+    if [[ -n "${NO_COLOR:-}" ]]; then printf '%s ' "$EGG_GLYPH"
+    else printf '\033[%sm%s\033[0m ' "$EGG_GLYPH_COLOR" "$EGG_GLYPH"; fi
+  fi
   if [[ -n "$LABEL_SGR" ]]; then lblcol=$col; else lblcol=''; fi
   paint "$lblcol" "${label}${LABEL_SEP}"
   printf ' '

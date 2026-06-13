@@ -96,7 +96,7 @@ $script:five_pct = ''
 $script:NAME_SGR = ''
 
 # --- Test end-to-end via child process ---
-function Run-E2E($json, $theme, $epoch, $tz) {
+function Run-E2E($json, $theme, $epoch, $tz, $noColor) {
     $tempHome = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), [System.Guid]::NewGuid().ToString())
     New-Item -ItemType Directory -Path "$tempHome/.claude" | Out-Null
     if ($theme) {
@@ -106,6 +106,7 @@ function Run-E2E($json, $theme, $epoch, $tz) {
     $env:HOME = $tempHome
     if ($epoch) { $env:PLAN_SL_NOW = $epoch } else { Remove-Item Env:\PLAN_SL_NOW -ErrorAction SilentlyContinue }
     if ($tz) { $env:TZ = $tz } else { Remove-Item Env:\TZ -ErrorAction SilentlyContinue }
+    if ($noColor) { $env:NO_COLOR = $noColor } else { Remove-Item Env:\NO_COLOR -ErrorAction SilentlyContinue }
 
     # We call pwsh because ps-tests.ps1 is already running in pwsh/powershell
     $pwsh = if ($PSVersionTable.PSVersion.Major -ge 6) { "pwsh" } else { "powershell" }
@@ -163,6 +164,24 @@ if ($res.out -notmatch '\+1/-0') { Fail "e2e enterprise" "No lines" }
 if ($res.out -notmatch '63k↑ 248↓') { Fail "e2e enterprise" "No tokens" }
 if ($res.out.Contains("$([char]0x25CB)") -eq $false -or $res.out.Contains("6%") -eq $false) { Fail "e2e enterprise" "No ctx" }
 Pass "e2e enterprise"
+
+# NO_COLOR: no ANSI, glyphs + layout intact
+$json = '{"model": {"display_name": "Opus 4.8"}, "rate_limits": {"five_hour": {"used_percentage": 42, "resets_at": 1746234000}, "seven_day": {"used_percentage": 78, "resets_at": 1746500400}}, "context_window": {"used_percentage": 15, "context_window_size": 1000000}}'
+$res = Run-E2E $json '' '1000000001' 'UTC' '1'
+if ($res.out.Contains([char]27)) { Fail "no_color" "ANSI ESC leaked under NO_COLOR" }
+if ($res.out -notmatch '5h: 42%' -or $res.out -notmatch 'week: 78%' -or $res.out -notmatch '15% of 1M') { Fail "no_color" "layout/values lost: $($res.out)" }
+Pass "no_color basic"
+
+$res = Run-E2E $json 'scrubs' '1000000000' 'UTC' '1'
+if ($res.out.Contains([char]27)) { Fail "no_color scrubs" "ANSI ESC leaked" }
+Pass "no_color scrubs"
+
+# pegged egg under NO_COLOR keeps its words, drops color
+$pegged = '{"model": {"display_name": "M"}, "rate_limits": {"five_hour": {"used_percentage": 100, "resets_at": 1746234000}}}'
+$res = Run-E2E $pegged 'scrubs' '1000000000' 'UTC' '1'
+if ($res.out.Contains([char]27)) { Fail "no_color egg" "ANSI ESC leaked" }
+if ($res.out -notmatch 'CODE BLUE' -or $res.out -notmatch 'defib') { Fail "no_color egg" "egg word lost: $($res.out)" }
+Pass "no_color egg"
 
 if ($script:Failed) {
     exit 1

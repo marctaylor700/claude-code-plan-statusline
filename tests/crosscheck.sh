@@ -15,6 +15,7 @@ fi
 FIXTURES_DIR="$(dirname "$0")/fixtures"
 THEMES=("default" "hearth" "glow" "scrubs" "no-config")
 EPOCHS=("1000000000" "1000000001")
+NO_COLORS=("" "1")   # exercise both colored and NO_COLOR output
 TIMEZONES=("UTC" "America/Phoenix")
 
 TOTAL_CHECKS=0
@@ -33,20 +34,21 @@ for tz in "${TIMEZONES[@]}"; do
         echo "theme=$theme" > "$TEMP_HOME/.claude/plan-statusline.conf"
       fi
 
+      for nc in "${NO_COLORS[@]}"; do
       for fixture in "$FIXTURES_DIR"/*.json; do
         fixture_name=$(basename "$fixture")
 
         # Run bash script
-        out_bash=$(TZ="$tz" LC_ALL=C PLAN_SL_NOW="$epoch" HOME="$TEMP_HOME" bash statusline.sh < "$fixture")
+        out_bash=$(TZ="$tz" LC_ALL=C PLAN_SL_NOW="$epoch" NO_COLOR="$nc" HOME="$TEMP_HOME" bash statusline.sh < "$fixture")
 
         # Run pwsh script
-        out_pwsh=$(TZ="$tz" LC_ALL=C PLAN_SL_NOW="$epoch" HOME="$TEMP_HOME" pwsh -NoProfile -File statusline.ps1 < "$fixture")
+        out_pwsh=$(TZ="$tz" LC_ALL=C PLAN_SL_NOW="$epoch" NO_COLOR="$nc" HOME="$TEMP_HOME" pwsh -NoProfile -File statusline.ps1 < "$fixture")
 
         TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
 
         if [[ "$out_bash" != "$out_pwsh" ]]; then
           echo "Mismatch!"
-          echo "Fixture: $fixture_name | Theme: $theme | TZ: $tz | Epoch: $epoch"
+          echo "Fixture: $fixture_name | Theme: $theme | TZ: $tz | Epoch: $epoch | NO_COLOR='$nc'"
           echo "Bash output (hex):"
           echo -n "$out_bash" | xxd
           echo "PowerShell output (hex):"
@@ -54,6 +56,7 @@ for tz in "${TIMEZONES[@]}"; do
           FAILED_CHECKS=$((FAILED_CHECKS + 1))
           exit 1
         fi
+      done
       done
     done
   done

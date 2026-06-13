@@ -70,3 +70,6 @@ of the theme contract.
 - Malformed/empty stdin → `Claude │ usage data pending - make a request`, exit 0, silent
   stderr.
 - One line, no trailing newline, UTF-8 (no BOM) bytes on stdout.
+- `NO_COLOR` (any non-empty value) suppresses ALL ANSI in both scripts — glyphs
+  and layout unchanged, just no color/style. Honored at every SGR emission point
+  (paint, render_name, egg glyph, the missing-jq error). Part of the parity contract.

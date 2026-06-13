@@ -1,6 +1,8 @@
 ﻿param()
 
 $ESC = [char]27
+# Honors NO_COLOR (https://no-color.org): any non-empty value suppresses all ANSI.
+$script:NoColor = -not [string]::IsNullOrEmpty($env:NO_COLOR)
 
 function date_fmt($epoch, $fmt) {
     # Not used directly in PS, handled locally
@@ -107,6 +109,7 @@ function limit_pegged() {
 
 function render_name($text) {
     if ([string]::IsNullOrEmpty($text)) { return '' }
+    if ($script:NoColor) { return $text }
     if (limit_pegged) {
         return "${ESC}[2m${text}${ESC}[0m"
     }
@@ -169,7 +172,7 @@ function Theme-Scrubs() {
 }
 
 function paint($sgr, $text) {
-    if (-not [string]::IsNullOrEmpty($sgr)) {
+    if ((-not [string]::IsNullOrEmpty($sgr)) -and (-not $script:NoColor)) {
         return "${ESC}[${sgr}m${text}${ESC}[0m"
     }
     return $text
@@ -264,7 +267,8 @@ function egg($label, $reset_str) {
 
     $res = ""
     if (-not [string]::IsNullOrEmpty($script:EGG_GLYPH)) {
-        $res += "${ESC}[$($script:EGG_GLYPH_COLOR)m$($script:EGG_GLYPH)${ESC}[0m "
+        if ($script:NoColor) { $res += "$($script:EGG_GLYPH) " }
+        else { $res += "${ESC}[$($script:EGG_GLYPH_COLOR)m$($script:EGG_GLYPH)${ESC}[0m " }
     }
 
     $lblcol = ""

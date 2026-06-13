@@ -114,6 +114,10 @@ theme=hearth
 
 No restart needed — the statusline re-reads the config on every refresh, so a new theme shows up within a few seconds.
 
+### Disabling color
+
+The statusline honors [`NO_COLOR`](https://no-color.org): set the `NO_COLOR` environment variable to any non-empty value and the line renders as plain text — same glyphs, same layout, no ANSI color. Useful for log capture, screen readers, or minimal terminals. Both the bash and PowerShell versions behave identically.
+
 | Theme     | Look                                                                                                                |
 |-----------|---------------------------------------------------------------------------------------------------------------------|
 | `default` | Basic ANSI colors, pipe separators, single context circle. Bold model name.                                         |
