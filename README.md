@@ -4,6 +4,10 @@
 
 A tiny [Claude Code](https://www.anthropic.com/claude-code) statusline that keeps your **actual plan rate-limit usage** at the bottom of the terminal — the same numbers `/usage` reports, without typing `/usage`. No network calls, no auth, no dollar-cost guesswork.
 
+![statusline demo — cycling through the four themes](demo.svg)
+
+<sub>Animated demo (themes cycle automatically). Static screenshot:</sub>
+
 ![statusline screenshot](screenshot.png)
 
 - **Real plan usage, not dollar cost** — your 5-hour and weekly rate-limit windows and when they reset, read straight from Claude Code's own data.
