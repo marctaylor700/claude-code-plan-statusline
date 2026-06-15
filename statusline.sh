@@ -13,6 +13,10 @@
 #   theme=atomic    # 1950s atomic-age: teal→mustard→orange→red ramp, starburst separators
 #   theme=slime     # toxic green ooze that drips; murky→vivid→acid as the goo grows
 #   theme=rainbow   # Mario Kart Rainbow Road: a flowing per-character rainbow gradient
+#   theme=dracula     # Dracula palette — neon purple/pink/cyan (truecolor)
+#   theme=nord        # Nord palette — arctic frost & aurora (truecolor)
+#   theme=gruvbox     # Gruvbox dark palette — warm retro earth tones (truecolor)
+#   theme=catppuccin  # Catppuccin Mocha palette — soft pastels (truecolor)
 # Missing or invalid theme → default.
 #
 # The 'rainbow' theme reads an optional 'rainbow_speed=N' line (default 1) = how
@@ -262,6 +266,60 @@ theme_rainbow() {            # Mario Kart Rainbow Road: a flowing per-character 
   EGG_MSG_A='OFF THE EDGE!'; EGG_COLOR_A='1;38;5;196'
   EGG_MSG_B='LAKITU!';       EGG_COLOR_B='1;38;5;51'   # text alternates; rainbow colors it
   EGG_RESET_WORD='Lakitu'
+}
+
+# --- Palettes ported from Oh My Posh themes (truecolor 38;2;R;G;B = exact hex). ---
+
+theme_dracula() {            # Dracula (draculatheme.com) — neon purple/pink/cyan
+  TIER_CALM='38;2;80;250;123'; TIER_WARN='38;2;139;233;253'; TIER_HOT='1;38;2;255;121;198'; TIER_URGENT='1;38;2;255;85;85'
+  NAME_SGR='1;38;2;189;147;249'                 # bold purple
+  SEP=' · '; SEP_COLOR='38;2;98;114;164'        # comment blue-grey
+  META='3;38;2;98;114;164'                      # italic comment
+  SEG_CIRCLE=1; LABEL_SEP=''
+  CIRCLE_SGR='@tier'; LABEL_SGR='@tier'
+  EGG_GLYPH=''; EGG_GLYPH_COLOR=''
+  EGG_MSG_A='DRAINED!'; EGG_COLOR_A='1;38;2;255;85;85'
+  EGG_MSG_B='BLED DRY'; EGG_COLOR_B='1;38;2;189;147;249'   # flashes red <-> purple
+  EGG_RESET_WORD='sunrise'
+}
+
+theme_nord() {               # Nord (nordtheme.com) — arctic frost & aurora
+  TIER_CALM='38;2;163;190;140'; TIER_WARN='38;2;129;161;193'; TIER_HOT='38;2;235;203;139'; TIER_URGENT='1;38;2;191;97;106'
+  NAME_SGR='1;38;2;136;192;208'                 # bold frost
+  SEP=' · '; SEP_COLOR='38;2;76;86;106'         # polar night nord3
+  META='3;38;2;76;86;106'
+  SEG_CIRCLE=1; LABEL_SEP=''
+  CIRCLE_SGR='@tier'; LABEL_SGR='@tier'
+  EGG_GLYPH=''; EGG_GLYPH_COLOR=''
+  EGG_MSG_A='FROZEN SOLID'; EGG_COLOR_A='1;38;2;191;97;106'
+  EGG_MSG_B='WHITEOUT';     EGG_COLOR_B='1;38;2;236;239;244'   # flashes red <-> snow
+  EGG_RESET_WORD='thaws'
+}
+
+theme_gruvbox() {            # Gruvbox dark — warm retro earth tones
+  TIER_CALM='38;2;184;187;38'; TIER_WARN='38;2;142;192;124'; TIER_HOT='1;38;2;254;128;25'; TIER_URGENT='1;38;2;251;73;52'
+  NAME_SGR='1;38;2;250;189;47'                  # bold yellow
+  SEP=' · '; SEP_COLOR='38;2;146;131;116'       # gray
+  META='3;38;2;146;131;116'
+  SEG_CIRCLE=1; LABEL_SEP=''
+  CIRCLE_SGR='@tier'; LABEL_SGR='@tier'
+  EGG_GLYPH=''; EGG_GLYPH_COLOR=''
+  EGG_MSG_A='SCORCHED'; EGG_COLOR_A='1;38;2;251;73;52'
+  EGG_MSG_B='BURNT TOAST'; EGG_COLOR_B='1;38;2;254;128;25'   # flashes red <-> orange
+  EGG_RESET_WORD='regrows'
+}
+
+theme_catppuccin() {         # Catppuccin Mocha — soft pastels
+  TIER_CALM='38;2;166;227;161'; TIER_WARN='38;2;148;226;213'; TIER_HOT='1;38;2;250;179;135'; TIER_URGENT='1;38;2;243;139;168'
+  NAME_SGR='1;38;2;203;166;247'                 # bold mauve
+  SEP=' · '; SEP_COLOR='38;2;108;112;134'       # overlay0
+  META='3;38;2;108;112;134'
+  SEG_CIRCLE=1; LABEL_SEP=''
+  CIRCLE_SGR='@tier'; LABEL_SGR='@tier'
+  EGG_GLYPH=''; EGG_GLYPH_COLOR=''
+  EGG_MSG_A='OVERBREWED'; EGG_COLOR_A='1;38;2;243;139;168'
+  EGG_MSG_B='HISS!';      EGG_COLOR_B='1;38;2;203;166;247'   # flashes red <-> mauve
+  EGG_RESET_WORD='refills'
 }
 
 # ============================================================================
@@ -515,6 +573,10 @@ main() {
     atomic) theme_atomic ;;
     slime)  theme_slime ;;
     rainbow) theme_rainbow ;;
+    dracula) theme_dracula ;;
+    nord)    theme_nord ;;
+    gruvbox) theme_gruvbox ;;
+    catppuccin) theme_catppuccin ;;
     default|*) theme_default ;;
   esac
   render_line

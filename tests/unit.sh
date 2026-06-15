@@ -57,7 +57,7 @@ theme_default
 [[ "$SEG_CIRCLE" == "0" ]] && ok "theme_default: SEG_CIRCLE" || bad "theme_default: SEG_CIRCLE"
 [[ -n "$NAME_SGR" ]] && ok "theme_default: NAME_SGR set" || bad "theme_default: NAME_SGR"
 
-for t in hearth glow scrubs harbor atomic slime; do
+for t in hearth glow scrubs harbor atomic slime dracula nord gruvbox catppuccin; do
   "theme_$t"
   [[ -n "$NAME_SGR" ]] && ok "theme_$t: NAME_SGR set" || bad "theme_$t: NAME_SGR"
   [[ "$LABEL_SEP" == "" ]]      && ok "theme_$t: LABEL_SEP empty" || bad "theme_$t: LABEL_SEP ('$LABEL_SEP')"
