@@ -1,15 +1,21 @@
 # claude-code-plan-statusline
 
+[![tests](https://github.com/blazemalan/claude-code-plan-statusline/actions/workflows/test.yml/badge.svg)](https://github.com/blazemalan/claude-code-plan-statusline/actions/workflows/test.yml)
+
 A tiny [Claude Code](https://www.anthropic.com/claude-code) statusline that keeps your **actual plan rate-limit usage** at the bottom of the terminal — the same numbers `/usage` reports, without typing `/usage`. No network calls, no auth, no dollar-cost guesswork.
+
+![statusline demo — cycling through the themes](demo.svg)
+
+<sub>Animated demo (themes cycle automatically). Static screenshot:</sub>
 
 ![statusline screenshot](screenshot.png)
 
 - **Real plan usage, not dollar cost** — your 5-hour and weekly rate-limit windows and when they reset, read straight from Claude Code's own data.
 - **Pro, Max, and Enterprise** — auto-detects your plan: rate-limit windows on Pro/Max, a session dashboard (cost · duration · tokens) on managed/Enterprise plans that have no windows.
 - **Per-chat context gauge** — how full the current conversation's context window is, at a glance.
-- **Four built-in themes** — switch instantly with no restart, or ask Claude Code to invent a new one.
+- **Eight built-in themes** — including animated ones (slime drips; rainbow flows) — switch instantly with no restart, or ask Claude Code to invent a new one.
 - **No network, no auth** — reads only the JSON Claude Code already pipes in; never touches your credentials.
-- **Portable** — macOS, Linux, and WSL; Bash 3.2+; one dependency (`jq`).
+- **Portable** — macOS, Linux, WSL, and native Windows. The bash version needs only `jq`; the PowerShell version (`statusline.ps1`) needs **zero installs** (PowerShell 5.1+ built-ins). The two render byte-identical output — a cross-check test diffs them on every fixture.
 
 ## Why plan usage, not dollar cost
 
@@ -34,16 +40,23 @@ On Enterprise/managed plans the layout adapts automatically — see [Enterprise 
 
 ### Let Claude Code install it (easiest)
 
-Open any Claude Code session and paste:
+**macOS / Linux / WSL** — open any Claude Code session and paste:
 
 > Please install the plan-statusline from https://github.com/blazemalan/claude-code-plan-statusline for me:
 > 1. Download https://raw.githubusercontent.com/blazemalan/claude-code-plan-statusline/main/statusline.sh to `~/.claude/hooks/plan-statusline.sh` and make it executable.
 > 2. Add a `statusLine` entry to `~/.claude/settings.json` that runs `bash ~/.claude/hooks/plan-statusline.sh`, preserving all existing keys.
 > 3. Make sure `jq` is installed (`brew install jq` if not).
 
+**Windows (native, nothing to install)** — paste this instead:
+
+> Please install the plan-statusline (Windows PowerShell version) from https://github.com/blazemalan/claude-code-plan-statusline for me:
+> 1. Download https://raw.githubusercontent.com/blazemalan/claude-code-plan-statusline/main/statusline.ps1 to `~/.claude/hooks/plan-statusline.ps1`, preserving its UTF-8 BOM.
+> 2. Add a `statusLine` entry to `~/.claude/settings.json` that runs `powershell -NoProfile -ExecutionPolicy Bypass -File <the absolute path to that file, with forward slashes>`, preserving all existing keys.
+> Nothing else to install — it's pure PowerShell 5.1+ built-ins.
+
 Claude Code does the file work and the settings edit, asking permission as it goes.
 
-### Manual install
+### Manual install — macOS / Linux / WSL
 
 ```bash
 mkdir -p ~/.claude/hooks
@@ -65,9 +78,39 @@ Then merge this into `~/.claude/settings.json`:
 
 Start a new Claude Code session and make a request — the statusline appears at the next refresh.
 
+### Manual install — Windows (native PowerShell)
+
+No dependencies: `statusline.ps1` is a line-for-line port of the bash version using only PowerShell 5.1+ built-ins.
+
+**Easiest:** [download the repo as a ZIP](https://github.com/blazemalan/claude-code-plan-statusline/archive/refs/heads/main.zip), extract it, and double-click `install-windows.bat`. It copies the script into place, updates your Claude Code settings (backing them up first), and shows a live preview of your statusline. Done.
+
+**Or by hand** — in a PowerShell window:
+
+```powershell
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.claude\hooks" | Out-Null
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/blazemalan/claude-code-plan-statusline/main/statusline.ps1 `
+  -OutFile "$env:USERPROFILE\.claude\hooks\plan-statusline.ps1"
+```
+
+Then merge this into `%USERPROFILE%\.claude\settings.json`, replacing `YOURNAME` with your Windows username (absolute path, forward slashes — that form works whether Claude Code routes the command through Git Bash, cmd, or PowerShell):
+
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "powershell -NoProfile -ExecutionPolicy Bypass -File C:/Users/YOURNAME/.claude/hooks/plan-statusline.ps1"
+  }
+}
+```
+
+Notes:
+- Works on Windows PowerShell 5.1 (preinstalled on Windows 10/11) and PowerShell 7+ (`pwsh`). If you have `pwsh`, you can use it in the command instead — it starts faster.
+- If you have **Git Bash** installed, the bash version also works on Windows (`"command": "bash C:/Users/YOURNAME/.claude/hooks/plan-statusline.sh"`), but it needs `jq`. The PowerShell version needs nothing — when in doubt, use it. The two produce identical output.
+- The file must stay **UTF-8 with BOM** (it ships that way; `Invoke-WebRequest -OutFile` preserves it). Without the BOM, PowerShell 5.1 garbles the Unicode circle/arrow glyphs.
+
 ## Themes
 
-Four themes ship in the box. Select one by creating `~/.claude/plan-statusline.conf`:
+Eight themes ship in the box. Select one by creating `~/.claude/plan-statusline.conf` (`%USERPROFILE%\.claude\plan-statusline.conf` on Windows — both scripts read the same file):
 
 ```
 theme=hearth
@@ -75,12 +118,20 @@ theme=hearth
 
 No restart needed — the statusline re-reads the config on every refresh, so a new theme shows up within a few seconds.
 
+### Disabling color
+
+The statusline honors [`NO_COLOR`](https://no-color.org): set the `NO_COLOR` environment variable to any non-empty value and the line renders as plain text — same glyphs, same layout, no ANSI color. Useful for log capture, screen readers, or minimal terminals. Both the bash and PowerShell versions behave identically.
+
 | Theme     | Look                                                                                                                |
 |-----------|---------------------------------------------------------------------------------------------------------------------|
 | `default` | Basic ANSI colors, pipe separators, single context circle. Bold model name.                                         |
 | `hearth`  | Warm amber, restrained. Bold-amber name; tier color stays silent until 70% (orange) / 90% (red); dim italic reset times. |
 | `glow`    | Pink neon arcade. Bold-magenta name; mint→pink→magenta→red tier ramp; italic rose reset times.                      |
 | `scrubs`  | Clinical teal vitals monitor. Bold bright-teal name; teal→bright→amber→red ramp; soft light-teal reset times.       |
+| `harbor`  | Calm ocean blues. Bold sea-blue name + fixed-blue context circles; tiers stay silent until 70% (amber) / 90% (red) — a warm `storm warning` surfaces only when usage climbs. |
+| `atomic`  | 1950s atomic-age. Bold orange name, muted-mustard `✦` starburst separators; retro teal→mustard→orange→red ramp.     |
+| `slime`   | Toxic green ooze. Bold slime-green name; murky→vivid→acid-green ramp; the separators **drip** — a droplet falls once per second (`˙ · .` then gone). |
+| `rainbow` | Mario Kart Rainbow Road. A flowing **per-character rainbow** gradient across the whole line; drifts one hue per refresh (tune the pace with a `rainbow_speed=N` line in the config). |
 
 The model name renders in each theme's solid color (at 100% plan usage it dims, part of the per-theme easter egg). If the config file is missing or names an unknown theme, the statusline falls back to `default`.
 
@@ -127,21 +178,17 @@ The `rate_limits` field appears only for Pro/Max subscribers, and only after the
 
 ## Requirements
 
-- macOS, Linux, or WSL (handles both BSD `date -r` and GNU `date -d @`)
 - Claude Code v2.1.80 or later
-- `jq` (preinstalled on macOS; `brew install jq` otherwise)
-- Bash 3.2+
+- **macOS / Linux / WSL** (`statusline.sh`): Bash 3.2+ and `jq` (preinstalled on macOS; `brew install jq` otherwise). Handles both BSD `date -r` and GNU `date -d @`.
+- **Windows** (`statusline.ps1`): Windows PowerShell 5.1 (preinstalled on Windows 10/11) or PowerShell 7+. No other dependencies.
 
 ## Development
 
-The renderer is data-driven: each theme is just a set of variables consumed by a single `render_line`. The tests are plain Bash and need no framework:
+The renderer is data-driven: each theme is just a set of variables consumed by a single `render_line`; `statusline.ps1` mirrors the same structure function-for-function. The tests are plain Bash / plain PowerShell and need no framework:
 
 ```bash
 bash tests/unit.sh        # sourceable helpers (formatting, circles, name rendering)
 bash tests/dispatch.sh    # theme dispatch + render faithfulness across themes
 bash tests/enterprise.sh  # Enterprise fallback + plan/enterprise mode exclusivity
-```
-
-## License
-
-MIT
+bash tests/robustness.sh  # malformed/partial stdin, config parsing, determinism hook
+pwsh tests/ps-tests.ps

@@ -1,0 +1,10 @@
+{
+  "model": { "display_name": "Claude" },
+  "cost": {
+    "total_duration_ms": 136020
+  },
+  "context_window": {
+    "total_input_tokens": 63015,
+    "total_output_tokens": 248
+  }
+}

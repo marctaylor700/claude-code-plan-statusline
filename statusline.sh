@@ -10,18 +10,30 @@
 #   theme=glow      # pink neon arcade, mint→magenta tier ramp
 #   theme=scrubs    # clinical teal vitals monitor
 #   theme=harbor    # calm ocean blues, silent low tiers, warm storm warning on top
-#   theme=atomic    # 1950s atomic-age: teal→mustard→orange→red ramp, starburst accents
+#   theme=atomic    # 1950s atomic-age: teal→mustard→orange→red ramp, starburst separators
 #   theme=slime     # toxic green ooze that drips; murky→vivid→acid as the goo grows
-#   theme=rainbow   # Mario Kart Rainbow Road: a flowing rainbow sweeps the whole line
+#   theme=rainbow   # Mario Kart Rainbow Road: a flowing per-character rainbow gradient
 # Missing or invalid theme → default.
 #
-# The 'rainbow' theme draws a smooth per-character gradient and reads an optional
-# 'rainbow_speed=N' line (default 1) = how many hues the whole gradient drifts per
-# repaint. The statusline repaints at most once a second (Claude Code's
-# refreshInterval floor), so this controls drift speed, not smoothness: 1-2 = a
-# gentle creep, higher just travels more color per second (never smoother).
+# The 'rainbow' theme reads an optional 'rainbow_speed=N' line (default 1) = how
+# many hues the gradient drifts per repaint (~1×/sec; larger N travels more color
+# per second, not smoother — the line repaints at most once a second).
+#
+# Honors NO_COLOR (https://no-color.org): if NO_COLOR is set to any non-empty
+# value, all ANSI color/style is suppressed; the line is plain text (glyphs and
+# layout unchanged).
 
 set -uo pipefail
+
+if ! command -v jq >/dev/null 2>&1; then
+  if [[ -n "${NO_COLOR:-}" ]]; then
+    printf 'plan-statusline requires jq to parse data (e.g. brew install jq)'
+  else
+    printf '\033[31mplan-statusline requires jq to parse data (e.g. brew install jq)\033[0m'
+  fi
+  # Return successfully so we don't break the terminal statusline pipeline
+  exit 0
+fi
 
 # ============================================================================
 # Shared helpers (used by every theme)
@@ -31,6 +43,14 @@ set -uo pipefail
 date_fmt() {
   local epoch=$1 fmt=$2
   date -r "$epoch" "$fmt" 2>/dev/null || date -d "@$epoch" "$fmt" 2>/dev/null
+}
+
+# "Now" as an epoch. PLAN_SL_NOW overrides for deterministic tests (the 100%
+# easter-egg flash and fmt_when's "is the reset today?" check both depend on
+# the current time; pinning it lets tests — and the bash<->PowerShell parity
+# cross-check — produce byte-stable output).
+now_epoch() {
+  printf '%s' "${PLAN_SL_NOW:-$(date +%s)}"
 }
 
 fmt_time() {
@@ -74,7 +94,7 @@ fmt_duration() {
 fmt_when() {
   local epoch=$1
   [[ -z "$epoch" ]] && return
-  if [[ "$(date_fmt "$epoch" "+%Y-%m-%d")" == "$(date "+%Y-%m-%d")" ]]; then
+  if [[ "$(date_fmt "$epoch" "+%Y-%m-%d")" == "$(date_fmt "$(now_epoch)" "+%Y-%m-%d")" ]]; then
     fmt_time "$epoch"
   else
     date_fmt "$epoch" "+%a" | tr '[:upper:]' '[:lower:]'
@@ -108,6 +128,10 @@ limit_pegged() {
 render_name() {
   local text=$1
   (( ${#text} == 0 )) && return
+  if [[ -n "${NO_COLOR:-}" ]]; then
+    printf '%s' "$text"
+    return
+  fi
   if limit_pegged; then
     printf '\033[2m%s\033[0m' "$text"
     return
@@ -188,11 +212,11 @@ theme_scrubs() {             # clinical teal vitals monitor
 
 theme_harbor() {             # calm ocean blues; silent low, storm only when usage climbs
   TIER_CALM=''; TIER_WARN=''; TIER_HOT='38;5;215'; TIER_URGENT='1;38;5;196'
-  NAME_SGR='1;38;5;39'                              # bold harbor blue
+  NAME_SGR='1;38;5;39'                          # bold harbor blue
   SEP=' · '; SEP_COLOR='38;5;24'               # dim deep-slate blue
-  META='2;3;38;5;67'                           # dim italic steel-blue
+  META='2;3;38;5;67'                            # dim italic steel-blue
   SEG_CIRCLE=1; LABEL_SEP=''
-  CIRCLE_SGR='38;5;38'; LABEL_SGR=''           # fixed sea-blue circle, plain label
+  CIRCLE_SGR='38;5;38'; LABEL_SGR=''            # fixed sea-blue circle, plain label
   EGG_GLYPH='≈'; EGG_GLYPH_COLOR='1;38;5;196'
   EGG_MSG_A='storm warning'; EGG_COLOR_A='1;38;5;196'
   EGG_MSG_B='storm warning'; EGG_COLOR_B='1;38;5;196'   # equal -> steady, no flash (stays calm)
@@ -201,7 +225,7 @@ theme_harbor() {             # calm ocean blues; silent low, storm only when usa
 
 theme_atomic() {             # 1950s atomic-age: retro teal -> mustard -> orange -> red, starbursts
   TIER_CALM='38;5;43'; TIER_WARN='38;5;178'; TIER_HOT='1;38;5;208'; TIER_URGENT='1;38;5;196'
-  NAME_SGR='1;38;5;208'                         # bold atomic orange
+  NAME_SGR='1;38;5;208'                          # bold atomic orange
   SEP=' ✦ '; SEP_COLOR='38;5;143'               # muted-mustard starburst accents
   META='2;3;38;5;73'                            # dim italic cadet (cool retro contrast)
   SEG_CIRCLE=1; LABEL_SEP=''
@@ -214,7 +238,7 @@ theme_atomic() {             # 1950s atomic-age: retro teal -> mustard -> orange
 
 theme_slime() {              # toxic green ooze; murky -> vivid -> acid as the goo grows
   TIER_CALM='38;5;71'; TIER_WARN='38;5;76'; TIER_HOT='1;38;5;118'; TIER_URGENT='1;38;5;154'
-  NAME_SGR='1;38;5;118'                         # bold glowing slime green
+  NAME_SGR='1;38;5;118'                          # bold glowing slime green
   SEP=' · '; SEP_COLOR='38;5;65'                # dim murky-green specks (fallback)
   SEP_ANIM='˙|·|.| '                            # drip: bead falls high→mid→low→off, 1 frame/sec
   META='2;3;38;5;65'                            # dim italic swamp green
@@ -226,12 +250,12 @@ theme_slime() {              # toxic green ooze; murky -> vivid -> acid as the g
   EGG_RESET_WORD='drains'
 }
 
-theme_rainbow() {            # Mario Kart Rainbow Road: a flowing rainbow sweeps the whole line
+theme_rainbow() {            # Mario Kart Rainbow Road: a flowing per-character rainbow gradient
   RAINBOW=1                                    # paint()/render_name() switch to the hue cursor
   TIER_CALM=''; TIER_WARN=''; TIER_HOT=''; TIER_URGENT=''   # unused — rainbow overrides all color
   NAME_SGR=''                                  # unused — the name is per-letter rainbow
   SEP=' · '; SEP_COLOR=''                       # color unused; the dot rides the rainbow
-  META='1'                                     # non-empty only so the 100% egg's reset clause also rainbows (value unused under RAINBOW)
+  META='1'                                     # non-empty only so the 100% egg's reset clause also rainbows
   SEG_CIRCLE=1; LABEL_SEP=''
   CIRCLE_SGR='@tier'; LABEL_SGR='@tier'         # span colors unused under rainbow
   EGG_GLYPH=''; EGG_GLYPH_COLOR=''
@@ -245,48 +269,46 @@ theme_rainbow() {            # Mario Kart Rainbow Road: a flowing rainbow sweeps
 # ============================================================================
 
 # Rainbow Road: a global hue cursor (_HUE) advances once per painted unit so the
-# colors sweep along the whole line; RAINBOW_PHASE (the wall-clock second, set in
-# render_line) offsets the whole wheel each repaint so the rainbow flows. Only the
-# 'rainbow' theme sets RAINBOW=1; every other theme leaves these inert.
-# A smooth 30-step ring around the 256-color cube (R→Y→G→C→B→M→R). Fine steps so
-# the per-character gradient reads as a smooth blend, not distinct color blocks.
+# colors sweep along the line; RAINBOW_PHASE (now_epoch × speed, set in render_line)
+# offsets the wheel each repaint so the rainbow flows. Only the 'rainbow' theme sets
+# RAINBOW=1; every other theme leaves these inert.
 RAINBOW_PALETTE=(196 202 208 214 220 226 190 154 118 82 46 47 48 49 50 51 45 39 33 27 21 57 93 129 165 201 200 199 198 197)
 _HUE=0; RAINBOW_PHASE=0; _RAINBOW_SGR=''; RAINBOW_SPEED=1   # hues advanced per repaint; override via rainbow_speed= in the conf
 # Set _RAINBOW_SGR to the cursor's current hue, then advance it. NOT called via
-# $(...) — command substitution runs in a subshell and would lose the _HUE bump.
+# $(...) — command substitution forks a subshell and would lose the _HUE bump.
 rainbow_next() {
   local n=${#RAINBOW_PALETTE[@]}
   _RAINBOW_SGR="1;38;5;${RAINBOW_PALETTE[$(( (_HUE + RAINBOW_PHASE) % n ))]}"
   _HUE=$(( _HUE + 1 ))
 }
 
-# Wrap TEXT in an SGR if non-empty (self-terminating); else print plain. Under
-# RAINBOW the passed SGR is ignored and the whole span takes the next rainbow hue
-# (per-span, so multibyte glyphs — ◑ → ↑ — stay intact rather than byte-split).
+# Wrap TEXT in an SGR if non-empty (self-terminating); else print plain. Under the
+# rainbow theme (and not NO_COLOR) the passed SGR is ignored and each pure-ASCII span
+# is colored character-by-character (a smooth gradient); a span with a multibyte glyph
+# (· → ↑ ◑) takes one hue so bash 3.2 never byte-splits it.
 paint() {
   local sgr=$1 text=$2
-  if [[ -n "${RAINBOW:-}" ]]; then
-    local LC_ALL=C _i                                   # byte-stable for the substring math below
-    if [[ -z "${text//[$'\x20'-$'\x7e']/}" ]]; then     # pure ASCII -> gradient each character
+  if [[ -n "${RAINBOW:-}" && -z "${NO_COLOR:-}" ]]; then
+    local LC_ALL=C _i
+    if [[ -z "${text//[$'\x20'-$'\x7e']/}" ]]; then
       for (( _i=0; _i<${#text}; _i++ )); do rainbow_next; printf '\033[%sm%s\033[0m' "$_RAINBOW_SGR" "${text:_i:1}"; done
-    else                                                # has a multibyte glyph (· → ↑ ◑) -> one color, unsplit
+    else
       rainbow_next; printf '\033[%sm%s\033[0m' "$_RAINBOW_SGR" "$text"
     fi
     return
   fi
-  if [[ -n "$sgr" ]]; then printf '\033[%sm%s\033[0m' "$sgr" "$text"
+  if [[ -n "$sgr" && -z "${NO_COLOR:-}" ]]; then printf '\033[%sm%s\033[0m' "$sgr" "$text"
   else printf '%s' "$text"; fi
 }
 
-# Separator. A theme may set SEP_ANIM to a '|'-joined list of frames; the
-# separator then advances one frame per repaint (~1×/sec) so it animates —
-# slime uses this to drip. Each frame is wrapped in spaces so the line width
-# never jitters (a blank frame = the drip has fallen off). No SEP_ANIM = the
-# static SEP, exactly as before.
+# Separator. A theme may set SEP_ANIM to a '|'-joined frame list; the separator then
+# advances one frame per repaint (~1×/sec) so it animates — slime uses this to drip.
+# Each frame is wrapped in spaces so the line width never jitters (a blank frame = the
+# drip has fallen off). No SEP_ANIM = the static SEP, exactly as before.
 paint_sep() {
   if [[ -n "${SEP_ANIM:-}" ]]; then
     local -a frames; IFS='|' read -ra frames <<< "$SEP_ANIM"
-    local now; now=$(date +%s)
+    local now; now=$(now_epoch)
     paint "$SEP_COLOR" " ${frames[$(( now % ${#frames[@]} ))]} "
   else
     paint "$SEP_COLOR" "$SEP"
@@ -363,12 +385,15 @@ seg_ctx() {
 # empty (default), matching the originals.
 egg() {
   local label=$1 reset_str=$2 msg col lblcol
-  if (( $(date +%s) % 2 )) && [[ "$EGG_MSG_A" != "$EGG_MSG_B" ]]; then
+  if (( $(now_epoch) % 2 )) && [[ "$EGG_MSG_A" != "$EGG_MSG_B" ]]; then
     msg=$EGG_MSG_B; col=$EGG_COLOR_B
   else
     msg=$EGG_MSG_A; col=$EGG_COLOR_A
   fi
-  [[ -n "$EGG_GLYPH" ]] && printf '\033[%sm%s\033[0m ' "$EGG_GLYPH_COLOR" "$EGG_GLYPH"
+  if [[ -n "$EGG_GLYPH" ]]; then
+    if [[ -n "${NO_COLOR:-}" ]]; then printf '%s ' "$EGG_GLYPH"
+    else printf '\033[%sm%s\033[0m ' "$EGG_GLYPH_COLOR" "$EGG_GLYPH"; fi
+  fi
   if [[ -n "$LABEL_SGR" ]]; then lblcol=$col; else lblcol=''; fi
   paint "$lblcol" "${label}${LABEL_SEP}"
   printf ' '
@@ -391,8 +416,8 @@ render_line() {
         in_tokens=${in_tokens:-} out_tokens=${out_tokens:-}
 
   # Rainbow Road: restart the hue sweep each render and reseed its phase from the
-  # wall clock, advancing RAINBOW_SPEED hues per repaint so the rainbow flows.
-  [[ -n "${RAINBOW:-}" ]] && { _HUE=0; RAINBOW_PHASE=$(( $(date +%s) * RAINBOW_SPEED )); }
+  # clock (× speed), so the rainbow advances RAINBOW_SPEED hues per repaint.
+  [[ -n "${RAINBOW:-}" ]] && { _HUE=0; RAINBOW_PHASE=$(( $(now_epoch) * RAINBOW_SPEED )); }
 
   # Nothing to show yet (fresh session, before the first API response).
   if [[ -z "$ctx_pct" && -z "$five_pct" && -z "$week_pct" && -z "$cost_usd" ]]; then
@@ -472,8 +497,14 @@ main() {
       .cost.total_lines_removed // "",
       .context_window.total_input_tokens // "",
       .context_window.total_output_tokens // ""
-    ] | map(tostring) | join("\u001f")'
+    ] | map(tostring) | join("\u001f")' 2>/dev/null
   )
+
+  # Malformed / empty stdin: jq emits nothing (its parse error is suppressed
+  # above so it can't leak into the statusline), `read` leaves every field
+  # empty, and we'd render a leading separator with no name. Fall back to the
+  # same default name jq uses so the pending line stays well-formed.
+  [[ -z "$model" ]] && model='Claude'
 
   # --- Dispatch: load theme data, render once ---
   case "$theme" in
