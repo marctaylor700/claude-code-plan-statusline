@@ -245,6 +245,60 @@ function Theme-Rainbow() {
     $script:EGG_RESET_WORD = 'Lakitu'
 }
 
+# --- Palettes ported from Oh My Posh themes (truecolor 38;2;R;G;B = exact hex). ---
+
+function Theme-Dracula() {
+    $script:TIER_CALM = '38;2;80;250;123'; $script:TIER_WARN = '38;2;139;233;253'; $script:TIER_HOT = '1;38;2;255;121;198'; $script:TIER_URGENT = '1;38;2;255;85;85'
+    $script:NAME_SGR = '1;38;2;189;147;249'
+    $script:SEP = ' · '; $script:SEP_COLOR = '38;2;98;114;164'
+    $script:META = '3;38;2;98;114;164'
+    $script:SEG_CIRCLE = 1; $script:LABEL_SEP = ''
+    $script:CIRCLE_SGR = '@tier'; $script:LABEL_SGR = '@tier'
+    $script:EGG_GLYPH = ''; $script:EGG_GLYPH_COLOR = ''
+    $script:EGG_MSG_A = 'DRAINED!'; $script:EGG_COLOR_A = '1;38;2;255;85;85'
+    $script:EGG_MSG_B = 'BLED DRY'; $script:EGG_COLOR_B = '1;38;2;189;147;249'
+    $script:EGG_RESET_WORD = 'sunrise'
+}
+
+function Theme-Nord() {
+    $script:TIER_CALM = '38;2;163;190;140'; $script:TIER_WARN = '38;2;129;161;193'; $script:TIER_HOT = '38;2;235;203;139'; $script:TIER_URGENT = '1;38;2;191;97;106'
+    $script:NAME_SGR = '1;38;2;136;192;208'
+    $script:SEP = ' · '; $script:SEP_COLOR = '38;2;76;86;106'
+    $script:META = '3;38;2;76;86;106'
+    $script:SEG_CIRCLE = 1; $script:LABEL_SEP = ''
+    $script:CIRCLE_SGR = '@tier'; $script:LABEL_SGR = '@tier'
+    $script:EGG_GLYPH = ''; $script:EGG_GLYPH_COLOR = ''
+    $script:EGG_MSG_A = 'FROZEN SOLID'; $script:EGG_COLOR_A = '1;38;2;191;97;106'
+    $script:EGG_MSG_B = 'WHITEOUT'; $script:EGG_COLOR_B = '1;38;2;236;239;244'
+    $script:EGG_RESET_WORD = 'thaws'
+}
+
+function Theme-Gruvbox() {
+    $script:TIER_CALM = '38;2;184;187;38'; $script:TIER_WARN = '38;2;142;192;124'; $script:TIER_HOT = '1;38;2;254;128;25'; $script:TIER_URGENT = '1;38;2;251;73;52'
+    $script:NAME_SGR = '1;38;2;250;189;47'
+    $script:SEP = ' · '; $script:SEP_COLOR = '38;2;146;131;116'
+    $script:META = '3;38;2;146;131;116'
+    $script:SEG_CIRCLE = 1; $script:LABEL_SEP = ''
+    $script:CIRCLE_SGR = '@tier'; $script:LABEL_SGR = '@tier'
+    $script:EGG_GLYPH = ''; $script:EGG_GLYPH_COLOR = ''
+    $script:EGG_MSG_A = 'SCORCHED'; $script:EGG_COLOR_A = '1;38;2;251;73;52'
+    $script:EGG_MSG_B = 'BURNT TOAST'; $script:EGG_COLOR_B = '1;38;2;254;128;25'
+    $script:EGG_RESET_WORD = 'regrows'
+}
+
+function Theme-Catppuccin() {
+    $script:TIER_CALM = '38;2;166;227;161'; $script:TIER_WARN = '38;2;148;226;213'; $script:TIER_HOT = '1;38;2;250;179;135'; $script:TIER_URGENT = '1;38;2;243;139;168'
+    $script:NAME_SGR = '1;38;2;203;166;247'
+    $script:SEP = ' · '; $script:SEP_COLOR = '38;2;108;112;134'
+    $script:META = '3;38;2;108;112;134'
+    $script:SEG_CIRCLE = 1; $script:LABEL_SEP = ''
+    $script:CIRCLE_SGR = '@tier'; $script:LABEL_SGR = '@tier'
+    $script:EGG_GLYPH = ''; $script:EGG_GLYPH_COLOR = ''
+    $script:EGG_MSG_A = 'OVERBREWED'; $script:EGG_COLOR_A = '1;38;2;243;139;168'
+    $script:EGG_MSG_B = 'HISS!'; $script:EGG_COLOR_B = '1;38;2;203;166;247'
+    $script:EGG_RESET_WORD = 'refills'
+}
+
 function rainbow_next() {
     $n = $script:RAINBOW_PALETTE.Count
     $idx = (($script:HUE + $script:RAINBOW_PHASE) % $n)
@@ -541,6 +595,10 @@ function Main() {
         'atomic' { Theme-Atomic }
         'slime' { Theme-Slime }
         'rainbow' { Theme-Rainbow }
+        'dracula' { Theme-Dracula }
+        'nord' { Theme-Nord }
+        'gruvbox' { Theme-Gruvbox }
+        'catppuccin' { Theme-Catppuccin }
         default { Theme-Default }
     }
 
