@@ -40,7 +40,7 @@ assert_renders() {
 }
 
 # Every theme that ships — add new themes here only.
-THEMES=(default hearth glow scrubs)
+THEMES=(default hearth glow scrubs harbor atomic slime rainbow)
 # Removed/unknown names that must silently fall through to default
 # (backward compat, e.g. users with theme=pulse still in their config).
 UNKNOWN=(pulse zzz)
@@ -105,6 +105,10 @@ egg_check default respawn
 egg_check hearth rekindles
 egg_check glow 1UP
 egg_check scrubs defib
+egg_check harbor 'fair winds'
+egg_check atomic rebuild
+egg_check slime drains
+egg_check rainbow Lakitu
 
 # --- ANSI-aware faithfulness guards (the strip_ansi checks miss color bugs) ---
 raw_render() {
